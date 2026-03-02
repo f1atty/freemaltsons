@@ -3427,7 +3427,7 @@ function renderRatingsView() {
   const rated = allSessions.filter(s => s.whisky && s.ratings && Object.keys(s.ratings).length);
 
   if (!rated.length) {
-    content.innerHTML = `<p class="ratings-empty">No ratings yet — tap a whisky card then ★ Rate to get started.</p>`;
+    content.innerHTML = `<p class="ratings-empty">Open a whisky card, navigate to the Ratings tab and enter a rating.</p>`;
     return;
   }
 
