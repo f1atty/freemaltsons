@@ -2726,8 +2726,10 @@ function openEditModal(idx) {
 }
 
 function closeEditModal() {
+  const idx = editingSessionIdx;
   document.getElementById('editModalOverlay').classList.remove('open');
   editingSessionIdx = -1;
+  if (idx >= 0) openDetailModal(idx);
 }
 
 function showEditImagePreview(url) {
