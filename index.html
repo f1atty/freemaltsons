@@ -3516,6 +3516,7 @@ async function sha256(str) {
 
   function showSignin() {
     selectedMember = null;
+    signinInProgress = false;
     signinView.style.display = '';
     signinView.style.opacity = '1';
     signinView.classList.remove('fade-out');
