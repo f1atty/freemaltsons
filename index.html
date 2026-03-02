@@ -3212,34 +3212,41 @@ document.addEventListener('keydown', e => {
     canvas.style.transition = '';
 
     const W = canvas.width, H = canvas.height;
-    const particles = [];
-    let frame = 0;
-    const COVER_FRAME = 180;
-    let coverDone = false, fadeStart = -1;
+    const isMobile = ('ontouchstart' in window) || window.innerWidth < 768;
+    const COVER_MS = isMobile ? 1800 : 2800; // wall-clock ms to cover the screen
+    const FADE_MS  = 800;
 
-    function Particle() {
-      this.x  = W * (0.02 + Math.random() * 0.96);
-      this.y  = H + 10 + Math.random() * 40;
-      this.vx = (Math.random() - 0.5) * 2.2;
-      this.vy = -(3.5 + Math.random() * 4.5);
-      this.r  = 60 + Math.random() * 150;
-      this.alpha    = 0;
-      this.maxAlpha = 0.07 + Math.random() * 0.13;
-      this.life     = 0;
-      this.maxLife  = 200 + Math.random() * 120;
+    const particles = [];
+    let startTime  = null;
+    let prevTime   = null;
+    let coverDone  = false;
+    let fadeStart  = null;
+    let spawnAccum = 0;
+
+    function Particle(elapsed) {
+      this.x       = W * (0.02 + Math.random() * 0.96);
+      this.y       = H + 10 + Math.random() * 40;
+      this.vx      = (Math.random() - 0.5) * 2.2;
+      this.vy      = -(3.5 + Math.random() * 4.5);
+      this.r       = 60 + Math.random() * 150;
+      this.alpha   = 0;
+      this.maxA    = 0.07 + Math.random() * 0.13;
+      this.birth   = elapsed;
+      this.maxLife = 3200 + Math.random() * 2000; // ms
     }
-    Particle.prototype.tick = function() {
-      this.life++;
-      this.x  += this.vx;
-      this.vx += (Math.random() - 0.5) * 0.13;
-      this.y  += this.vy;
-      this.vy *= 0.997;
-      this.r  += 1.8;
-      const t = this.life / this.maxLife;
-      if      (t < 0.12) this.alpha = this.maxAlpha * (t / 0.12);
-      else if (t > 0.62) this.alpha = this.maxAlpha * (1 - (t - 0.62) / 0.38);
-      else               this.alpha = this.maxAlpha;
-      return this.life < this.maxLife;
+    Particle.prototype.tick = function(elapsed, dt) {
+      const age = elapsed - this.birth;
+      const s   = dt / 16.67; // scale movement to 60 fps equivalent
+      this.x  += this.vx * s;
+      this.vx += (Math.random() - 0.5) * 0.13 * s;
+      this.y  += this.vy * s;
+      this.vy *= Math.pow(0.997, s);
+      this.r  += 1.8 * s;
+      const t = age / this.maxLife;
+      if      (t < 0.12) this.alpha = this.maxA * (t / 0.12);
+      else if (t > 0.62) this.alpha = this.maxA * (1 - (t - 0.62) / 0.38);
+      else               this.alpha = this.maxA;
+      return age < this.maxLife;
     };
     Particle.prototype.draw = function() {
       const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
@@ -3253,12 +3260,17 @@ document.addEventListener('keydown', e => {
       ctx.fill();
     };
 
-    function animate() {
-      frame++;
+    function animate(now) {
+      if (!startTime) { startTime = now; prevTime = now; }
+      const elapsed = now - startTime;
+      const dt      = Math.min(now - prevTime, 100); // cap dt to avoid huge jumps
+      prevTime = now;
+
+      const progress = Math.min(1, elapsed / COVER_MS);
       ctx.clearRect(0, 0, W, H);
 
-      // Background darkness rises from bottom, reaches full screen by COVER_FRAME
-      const darkAlpha = Math.min(0.97, (frame / COVER_FRAME) * 1.1);
+      // Background darkens uniformly across full screen
+      const darkAlpha = Math.min(0.97, progress * 1.08);
       const bg = ctx.createLinearGradient(0, H, 0, 0);
       bg.addColorStop(0,   `rgba(4,2,1,${darkAlpha})`);
       bg.addColorStop(0.4, `rgba(7,4,2,${darkAlpha})`);
@@ -3266,36 +3278,40 @@ document.addEventListener('keydown', e => {
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
 
-      // Spawn particles — ramp up, keep spawning to fill top of screen
-      if (frame <= COVER_FRAME) {
-        const count = frame < 10 ? 1 : frame < 40 ? 4 : 7;
-        for (let i = 0; i < count; i++) particles.push(new Particle());
+      // Spawn at a fixed rate in particles/sec, ramping up
+      if (!fadeStart) {
+        spawnAccum += dt;
+        const rate = elapsed < 300 ? 15 : elapsed < 800 ? 50 : 90; // particles/sec
+        const interval = 1000 / rate;
+        while (spawnAccum >= interval) {
+          spawnAccum -= interval;
+          particles.push(new Particle(elapsed));
+        }
       }
 
       // Update + draw
       for (let i = particles.length - 1; i >= 0; i--) {
-        if (!particles[i].tick()) particles.splice(i, 1);
+        if (!particles[i].tick(elapsed, dt)) particles.splice(i, 1);
         else particles[i].draw();
       }
 
-      // Screen is covered — hide home view and start fading canvas
-      if (frame >= COVER_FRAME && !coverDone) {
-        coverDone  = true;
-        fadeStart  = frame;
+      // Screen covered — reveal app and start fade
+      if (progress >= 1 && !coverDone) {
+        coverDone = true;
+        fadeStart = now;
         onCovered();
       }
 
-      // Fade canvas out to reveal app
-      if (fadeStart > 0) {
-        const elapsed = frame - fadeStart;
-        const a = Math.max(0, 1 - elapsed / 55);
-        canvas.style.opacity = a;
-        if (elapsed >= 55) { canvas.style.display = 'none'; return; }
+      // Fade canvas out
+      if (fadeStart) {
+        const fe = now - fadeStart;
+        canvas.style.opacity = Math.max(0, 1 - fe / FADE_MS);
+        if (fe >= FADE_MS) { canvas.style.display = 'none'; return; }
       }
 
       requestAnimationFrame(animate);
     }
-    animate();
+    requestAnimationFrame(animate);
   }
 
   function enterApp() {
