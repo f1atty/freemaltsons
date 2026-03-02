@@ -19,4 +19,4 @@ Commit and push after every change — do not batch multiple features into one c
 
 ## Context management
 
-If the conversation is getting long, proactively suggest the user runs `/compact` or starts a new session. Each new session loads CLAUDE.md and memory files automatically so no context is lost.
+Proactively warn the user to run `/compact` or start a new session WELL BEFORE context runs out — do not wait until it is nearly full. Suggest it early, after a reasonable number of exchanges or when the conversation has covered several topics. Each new session loads CLAUDE.md and memory files automatically so no context is lost.
