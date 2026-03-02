@@ -767,10 +767,30 @@ header::before {
 
 .detail-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
+}
+
+/* ── Page flip animation ─────────────────────────────────────────── */
+@keyframes pageFlipOut {
+  from { transform: perspective(900px) rotateY(0deg);   opacity: 1; }
+  to   { transform: perspective(900px) rotateY(-90deg); opacity: 0.1; }
+}
+@keyframes pageFlipIn {
+  from { transform: perspective(900px) rotateY(90deg);  opacity: 0.1; }
+  to   { transform: perspective(900px) rotateY(0deg);   opacity: 1; }
+}
+.page-flip-out {
+  animation: pageFlipOut 0.2s ease-in forwards;
+  transform-origin: right center;
+}
+.page-flip-in {
+  animation: pageFlipIn 0.22s ease-out forwards;
+  transform-origin: left center;
 }
 
 /* ── Modal Overlay ───────────────────────────────────────────────── */
@@ -1856,8 +1876,8 @@ footer {
       </div>
 
       <div class="detail-actions">
-        <button class="btn-back" id="detailRateBtn" style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--gold)">★ Rate</button>
         <button class="btn-primary" id="detailEditBtn">Edit Session</button>
+        <button class="btn-primary" id="detailRateBtn">★ Rate</button>
       </div>
     </div>
   </div>
@@ -3026,8 +3046,14 @@ document.getElementById('detailEditBtn').addEventListener('click', () => {
 });
 document.getElementById('detailRateBtn').addEventListener('click', () => {
   const idx = detailSessionIdx;
-  closeDetailModal();
-  openRatingModal(idx);
+  const modal = document.querySelector('#detailModalOverlay .modal');
+  modal.classList.add('page-flip-out');
+  setTimeout(() => {
+    modal.classList.remove('page-flip-out');
+    document.getElementById('detailModalOverlay').classList.remove('open');
+    detailSessionIdx = -1;
+    openRatingModal(idx);
+  }, 200);
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDetailModal();
@@ -3082,7 +3108,11 @@ function openRatingModal(idx) {
         value="${esc(note)}" id="rsnote-${i}">
     </div>`;
   }).join('');
-  document.getElementById('ratingModalOverlay').classList.add('open');
+  const overlay = document.getElementById('ratingModalOverlay');
+  const modal   = overlay.querySelector('.modal');
+  modal.classList.add('page-flip-in');
+  overlay.classList.add('open');
+  modal.addEventListener('animationend', () => modal.classList.remove('page-flip-in'), { once: true });
 }
 
 function closeRatingModal() {
