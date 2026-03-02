@@ -16,3 +16,7 @@ git stash && git pull --rebase origin main && git stash pop && git push origin m
 ```
 
 Commit and push after every change — do not batch multiple features into one commit.
+
+## Context management
+
+If the conversation is getting long, proactively suggest the user runs `/compact` or starts a new session. Each new session loads CLAUDE.md and memory files automatically so no context is lost.
