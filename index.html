@@ -1553,6 +1553,27 @@ header::before {
 
 .signin-shake { animation: signinShake 0.4s ease; }
 
+.signin-submit-btn {
+  display: block;
+  margin: 16px auto 0;
+  background: none;
+  border: 1px solid var(--border-gold);
+  color: var(--gold);
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  width: 56px;
+  height: 48px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.signin-submit-btn:hover {
+  background: var(--gold-faint);
+  border-color: var(--gold-dim);
+  color: var(--gold-lt);
+}
+
 .header-title { cursor: pointer; }
 
 /* ── Tab Bar ─────────────────────────────────────────────────────────── */
@@ -1923,6 +1944,7 @@ footer {
     <div class="signin-pin-section" id="signinPinSection" style="display:none">
       <p class="signin-pin-label" id="signinPinLabel">Enter PIN</p>
       <input class="signin-pin-input" id="signinPinInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+      <button class="signin-submit-btn" id="signinSubmitBtn" onclick="attemptSignin()">→</button>
       <p class="signin-error" id="signinError"></p>
     </div>
   </div>
@@ -3514,7 +3536,7 @@ async function sha256(str) {
   };
 
   let signinInProgress = false;
-  async function attemptSignin() {
+  window.attemptSignin = async function attemptSignin() {
     if (signinInProgress) return;
     const pin   = document.getElementById('signinPinInput').value;
     const input = document.getElementById('signinPinInput');
