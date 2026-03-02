@@ -1416,6 +1416,21 @@ header::before {
   color: var(--gold-lt);
 }
 
+.home-enter-btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+#smokeCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 201;
+  display: none;
+  pointer-events: none;
+}
+
 .header-title { cursor: pointer; }
 
 /* ── Tab Bar ─────────────────────────────────────────────────────────── */
@@ -1760,6 +1775,7 @@ footer {
   <p class="home-est">Est. 12 February 2015</p>
   <button class="home-enter-btn" id="homeEnterBtn">Whisky Nights</button>
 </div>
+<canvas id="smokeCanvas"></canvas>
 
 <!-- ── Header ──────────────────────────────────────────────────────── -->
 <header>
@@ -3185,19 +3201,118 @@ document.addEventListener('keydown', e => {
 // ─── Home Page ────────────────────────────────────────────────────────
 (function() {
   const homeView = document.getElementById('homeView');
-  function enterApp() {
-    sessionStorage.setItem('fm_entered', '1');
-    homeView.classList.add('fade-out');
-    homeView.addEventListener('transitionend', () => {
-      homeView.style.display = 'none';
-    }, { once: true });
+
+  function triggerSmokeTransition(onCovered) {
+    const canvas = document.getElementById('smokeCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display  = 'block';
+    canvas.style.opacity  = '1';
+    canvas.style.transition = '';
+
+    const W = canvas.width, H = canvas.height;
+    const particles = [];
+    let frame = 0;
+    const COVER_FRAME = 115;
+    let coverDone = false, fadeStart = -1;
+
+    function Particle() {
+      this.x  = W * (0.05 + Math.random() * 0.9);
+      this.y  = H + 10 + Math.random() * 40;
+      this.vx = (Math.random() - 0.5) * 1.8;
+      this.vy = -(1.8 + Math.random() * 3.0);
+      this.r  = 55 + Math.random() * 130;
+      this.alpha    = 0;
+      this.maxAlpha = 0.06 + Math.random() * 0.12;
+      this.life     = 0;
+      this.maxLife  = 130 + Math.random() * 100;
+    }
+    Particle.prototype.tick = function() {
+      this.life++;
+      this.x  += this.vx;
+      this.vx += (Math.random() - 0.5) * 0.13;
+      this.y  += this.vy;
+      this.vy *= 0.993;
+      this.r  += 1.5;
+      const t = this.life / this.maxLife;
+      if      (t < 0.12) this.alpha = this.maxAlpha * (t / 0.12);
+      else if (t > 0.62) this.alpha = this.maxAlpha * (1 - (t - 0.62) / 0.38);
+      else               this.alpha = this.maxAlpha;
+      return this.life < this.maxLife;
+    };
+    Particle.prototype.draw = function() {
+      const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
+      g.addColorStop(0,    `rgba(190,135,65,${this.alpha * 1.4})`);
+      g.addColorStop(0.3,  `rgba(100,68,30,${this.alpha})`);
+      g.addColorStop(0.65, `rgba(28,16,6,${this.alpha * 0.55})`);
+      g.addColorStop(1,    `rgba(4,2,1,0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    function animate() {
+      frame++;
+      ctx.clearRect(0, 0, W, H);
+
+      // Background darkness rises from bottom
+      const darkAlpha = Math.min(0.97, (frame / COVER_FRAME) * 1.1);
+      const bg = ctx.createLinearGradient(0, H, 0, 0);
+      bg.addColorStop(0,   `rgba(4,2,1,${darkAlpha})`);
+      bg.addColorStop(0.4, `rgba(7,4,2,${darkAlpha * 0.9})`);
+      bg.addColorStop(1,   `rgba(12,7,3,${darkAlpha * 0.75})`);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Spawn particles — ramp up quickly, stop when screen covered
+      if (frame <= COVER_FRAME) {
+        const count = frame < 10 ? 1 : frame < 35 ? 3 : 6;
+        for (let i = 0; i < count; i++) particles.push(new Particle());
+      }
+
+      // Update + draw
+      for (let i = particles.length - 1; i >= 0; i--) {
+        if (!particles[i].tick()) particles.splice(i, 1);
+        else particles[i].draw();
+      }
+
+      // Screen is covered — hide home view and start fading canvas
+      if (frame >= COVER_FRAME && !coverDone) {
+        coverDone  = true;
+        fadeStart  = frame;
+        onCovered();
+      }
+
+      // Fade canvas out to reveal app
+      if (fadeStart > 0) {
+        const elapsed = frame - fadeStart;
+        const a = Math.max(0, 1 - elapsed / 55);
+        canvas.style.opacity = a;
+        if (elapsed >= 55) { canvas.style.display = 'none'; return; }
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate();
   }
+
+  function enterApp() {
+    document.getElementById('homeEnterBtn').disabled = true;
+    triggerSmokeTransition(function() {
+      sessionStorage.setItem('fm_entered', '1');
+      homeView.style.display = 'none';
+    });
+  }
+
   function showHome() {
     sessionStorage.removeItem('fm_entered');
     homeView.style.display = '';
     homeView.offsetHeight;
     homeView.classList.remove('fade-out');
   }
+
   // Skip home page if already entered this session (e.g. after a refresh)
   if (sessionStorage.getItem('fm_entered')) {
     homeView.style.display = 'none';
