@@ -3513,11 +3513,14 @@ async function sha256(str) {
     setTimeout(() => document.getElementById('signinPinInput').focus(), 50);
   };
 
+  let signinInProgress = false;
   async function attemptSignin() {
+    if (signinInProgress) return;
     const pin   = document.getElementById('signinPinInput').value;
     const input = document.getElementById('signinPinInput');
     const errEl = document.getElementById('signinError');
     if (!selectedMember || pin.length < 4) return;
+    signinInProgress = true;
     const hash = await sha256(pin);
     if (hash === MEMBER_PINS[selectedMember]) {
       sessionStorage.setItem('fm_user', selectedMember);
@@ -3530,14 +3533,21 @@ async function sha256(str) {
       input.value = '';
       input.classList.add('signin-shake');
       input.addEventListener('animationend', () => input.classList.remove('signin-shake'), { once: true });
+      signinInProgress = false;
       setTimeout(() => input.focus(), 50);
     }
   }
 
-  document.getElementById('signinPinInput').addEventListener('input', function() {
-    document.getElementById('signinError').textContent = '';
-    if (this.value.length === 4) attemptSignin();
-  });
+  (function() {
+    const pinInput = document.getElementById('signinPinInput');
+    function checkPin() {
+      document.getElementById('signinError').textContent = '';
+      if (pinInput.value.length >= 4) attemptSignin();
+    }
+    // Both events + deferred check to handle iOS Safari firing before value updates
+    pinInput.addEventListener('input',  () => setTimeout(checkPin, 20));
+    pinInput.addEventListener('keyup',  () => setTimeout(checkPin, 20));
+  })();
 
   // ── App entry flow ─────────────────────────────────────────────────
   function enterApp() {
