@@ -1773,7 +1773,7 @@ footer {
 <div class="home-view" id="homeView">
   <img class="home-crest" src="Freemaltsons crest.png" alt="The Freemaltsons Crest">
   <p class="home-est">Est. 12 February 2015</p>
-  <button class="home-enter-btn" id="homeEnterBtn">Whisky Nights</button>
+  <button class="home-enter-btn" id="homeEnterBtn">Enter</button>
 </div>
 <canvas id="smokeCanvas"></canvas>
 
@@ -3214,27 +3214,27 @@ document.addEventListener('keydown', e => {
     const W = canvas.width, H = canvas.height;
     const particles = [];
     let frame = 0;
-    const COVER_FRAME = 115;
+    const COVER_FRAME = 180;
     let coverDone = false, fadeStart = -1;
 
     function Particle() {
-      this.x  = W * (0.05 + Math.random() * 0.9);
+      this.x  = W * (0.02 + Math.random() * 0.96);
       this.y  = H + 10 + Math.random() * 40;
-      this.vx = (Math.random() - 0.5) * 1.8;
-      this.vy = -(1.8 + Math.random() * 3.0);
-      this.r  = 55 + Math.random() * 130;
+      this.vx = (Math.random() - 0.5) * 2.2;
+      this.vy = -(3.5 + Math.random() * 4.5);
+      this.r  = 60 + Math.random() * 150;
       this.alpha    = 0;
-      this.maxAlpha = 0.06 + Math.random() * 0.12;
+      this.maxAlpha = 0.07 + Math.random() * 0.13;
       this.life     = 0;
-      this.maxLife  = 130 + Math.random() * 100;
+      this.maxLife  = 200 + Math.random() * 120;
     }
     Particle.prototype.tick = function() {
       this.life++;
       this.x  += this.vx;
       this.vx += (Math.random() - 0.5) * 0.13;
       this.y  += this.vy;
-      this.vy *= 0.993;
-      this.r  += 1.5;
+      this.vy *= 0.997;
+      this.r  += 1.8;
       const t = this.life / this.maxLife;
       if      (t < 0.12) this.alpha = this.maxAlpha * (t / 0.12);
       else if (t > 0.62) this.alpha = this.maxAlpha * (1 - (t - 0.62) / 0.38);
@@ -3257,18 +3257,18 @@ document.addEventListener('keydown', e => {
       frame++;
       ctx.clearRect(0, 0, W, H);
 
-      // Background darkness rises from bottom
+      // Background darkness rises from bottom, reaches full screen by COVER_FRAME
       const darkAlpha = Math.min(0.97, (frame / COVER_FRAME) * 1.1);
       const bg = ctx.createLinearGradient(0, H, 0, 0);
       bg.addColorStop(0,   `rgba(4,2,1,${darkAlpha})`);
-      bg.addColorStop(0.4, `rgba(7,4,2,${darkAlpha * 0.9})`);
-      bg.addColorStop(1,   `rgba(12,7,3,${darkAlpha * 0.75})`);
+      bg.addColorStop(0.4, `rgba(7,4,2,${darkAlpha})`);
+      bg.addColorStop(1,   `rgba(12,7,3,${darkAlpha})`);
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
 
-      // Spawn particles — ramp up quickly, stop when screen covered
+      // Spawn particles — ramp up, keep spawning to fill top of screen
       if (frame <= COVER_FRAME) {
-        const count = frame < 10 ? 1 : frame < 35 ? 3 : 6;
+        const count = frame < 10 ? 1 : frame < 40 ? 4 : 7;
         for (let i = 0; i < count; i++) particles.push(new Particle());
       }
 
@@ -3308,6 +3308,7 @@ document.addEventListener('keydown', e => {
 
   function showHome() {
     sessionStorage.removeItem('fm_entered');
+    document.getElementById('homeEnterBtn').disabled = false;
     homeView.style.display = '';
     homeView.offsetHeight;
     homeView.classList.remove('fade-out');
