@@ -14,3 +14,5 @@ Remote is often ahead of local (GitHub API writes from the app). Always use this
 ```
 git stash && git pull --rebase origin main && git stash pop && git push origin main
 ```
+
+Commit and push after every change — do not batch multiple features into one commit.
