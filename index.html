@@ -775,23 +775,106 @@ header::before {
   border-top: 1px solid var(--border);
 }
 
-/* ── Page flip animation ─────────────────────────────────────────── */
-@keyframes pageFlipOut {
-  from { transform: perspective(900px) rotateY(0deg);   opacity: 1; }
-  to   { transform: perspective(900px) rotateY(-90deg); opacity: 0.1; }
+/* ── Detail modal inner tabs ─────────────────────────────────────── */
+.detail-inner-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-gold);
+  background: var(--bg-modal);
+  flex-shrink: 0;
 }
-@keyframes pageFlipIn {
-  from { transform: perspective(900px) rotateY(90deg);  opacity: 0.1; }
-  to   { transform: perspective(900px) rotateY(0deg);   opacity: 1; }
+
+.detail-inner-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 13px 0;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
 }
-.page-flip-out {
-  animation: pageFlipOut 0.2s ease-in forwards;
-  transform-origin: right center;
+
+.detail-inner-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.detail-inner-tab:hover:not(.active) { color: var(--gold-lt); }
+
+/* ── Locked ratings display ──────────────────────────────────────── */
+.rating-locked-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
 }
-.page-flip-in {
-  animation: pageFlipIn 0.22s ease-out forwards;
-  transform-origin: left center;
+
+.rating-locked-name {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--cream);
+  width: 72px;
+  flex-shrink: 0;
 }
+
+.rating-locked-bar-wrap {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.rating-locked-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  border-radius: 1px;
+}
+
+.rating-locked-score {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--gold);
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rating-locked-none { color: var(--text-faint); font-size: 0.85rem; }
+
+.rating-locked-note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 2px 0 8px 84px;
+  line-height: 1.4;
+}
+
+/* ── Pane flip animations ────────────────────────────────────────── */
+@keyframes paneFlipOutFwd {
+  from { transform: perspective(900px) rotateY(0deg);   opacity: 1;    }
+  to   { transform: perspective(900px) rotateY(-90deg); opacity: 0.05; }
+}
+@keyframes paneFlipInFwd {
+  from { transform: perspective(900px) rotateY(90deg);  opacity: 0.05; }
+  to   { transform: perspective(900px) rotateY(0deg);   opacity: 1;    }
+}
+@keyframes paneFlipOutBck {
+  from { transform: perspective(900px) rotateY(0deg);  opacity: 1;    }
+  to   { transform: perspective(900px) rotateY(90deg); opacity: 0.05; }
+}
+@keyframes paneFlipInBck {
+  from { transform: perspective(900px) rotateY(-90deg); opacity: 0.05; }
+  to   { transform: perspective(900px) rotateY(0deg);   opacity: 1;    }
+}
+.pane-flip-out-fwd { animation: paneFlipOutFwd 0.18s ease-in  forwards; transform-origin: right center; }
+.pane-flip-in-fwd  { animation: paneFlipInFwd  0.2s  ease-out forwards; transform-origin: left  center; }
+.pane-flip-out-bck { animation: paneFlipOutBck 0.18s ease-in  forwards; transform-origin: left  center; }
+.pane-flip-in-bck  { animation: paneFlipInBck  0.2s  ease-out forwards; transform-origin: right center; }
 
 /* ── Modal Overlay ───────────────────────────────────────────────── */
 .modal-overlay {
@@ -1857,27 +1940,49 @@ footer {
 <div class="modal-overlay" id="detailModalOverlay">
   <div class="modal detail-modal">
     <button class="modal-close" id="detailModalClose">✕</button>
-    <div class="detail-hero" id="detailHero"></div>
-    <div class="detail-body">
-      <div class="detail-badge" id="detailBadge"></div>
-      <h2 class="detail-whisky" id="detailWhisky"></h2>
-      <div class="detail-meta" id="detailMeta"></div>
 
-      <div class="detail-section" id="detailDistillerySection">
-        <div class="detail-section-heading">The Distillery</div>
-        <div class="detail-distillery-name" id="detailDistilleryName"></div>
-        <div class="detail-wiki-extract" id="detailWikiExtract"></div>
-        <div class="detail-links" id="detailDistilleryLinks"></div>
+    <div class="detail-inner-tabs">
+      <button class="detail-inner-tab active" id="detailTabDetails">Details</button>
+      <button class="detail-inner-tab" id="detailTabRatings">Ratings</button>
+    </div>
+
+    <!-- Details pane -->
+    <div id="detailDetailsPane">
+      <div class="detail-hero" id="detailHero"></div>
+      <div class="detail-body">
+        <div class="detail-badge" id="detailBadge"></div>
+        <h2 class="detail-whisky" id="detailWhisky"></h2>
+        <div class="detail-meta" id="detailMeta"></div>
+
+        <div class="detail-section" id="detailDistillerySection">
+          <div class="detail-section-heading">The Distillery</div>
+          <div class="detail-distillery-name" id="detailDistilleryName"></div>
+          <div class="detail-wiki-extract" id="detailWikiExtract"></div>
+          <div class="detail-links" id="detailDistilleryLinks"></div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-heading">Find This Whisky</div>
+          <div class="detail-links" id="detailWhiskyLinks"></div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="btn-primary" id="detailEditBtn">Edit Session</button>
+        </div>
       </div>
+    </div>
 
-      <div class="detail-section">
-        <div class="detail-section-heading">Find This Whisky</div>
-        <div class="detail-links" id="detailWhiskyLinks"></div>
-      </div>
-
-      <div class="detail-actions">
-        <button class="btn-primary" id="detailEditBtn">Edit Session</button>
-        <button class="btn-primary" id="detailRateBtn">★ Rate</button>
+    <!-- Ratings pane -->
+    <div id="detailRatingsPane" style="display:none">
+      <div class="detail-body" style="padding-top:20px">
+        <div id="ratingsPaneContent"></div>
+        <div class="detail-actions">
+          <button class="btn-back" id="ratingsCancelBtn" style="display:none">Cancel</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-primary" id="ratingsSavePaneBtn" style="display:none">Save</button>
+            <button class="btn-primary" id="ratingsEditBtn">Edit</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1937,20 +2042,6 @@ footer {
     <div class="modal-actions">
       <button class="btn-back" id="editCancelBtn">Cancel</button>
       <button class="btn-primary" id="editSaveBtn">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Ratings Modal ──────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="ratingModalOverlay">
-  <div class="modal">
-    <button class="modal-close" id="ratingModalClose">✕</button>
-    <div class="modal-step-label">Rate This Whisky</div>
-    <h2 class="modal-heading" id="ratingModalWhisky">–</h2>
-    <div id="ratingMemberList"></div>
-    <div class="modal-actions">
-      <button class="btn-back" id="ratingCancelBtn">Cancel</button>
-      <button class="btn-primary" id="ratingsSaveBtn">Save Ratings</button>
     </div>
   </div>
 </div>
@@ -2966,6 +3057,10 @@ function openDetailModal(idx) {
   if (!s) return;
   detailSessionIdx = idx;
 
+  // Always open on Details pane, reset ratings pane state
+  switchDetailPane(false, false);
+  renderRatingsPaneLocked(s);
+
   // Hero image
   const hero = document.getElementById('detailHero');
   if (s.image_url) {
@@ -3044,16 +3139,42 @@ document.getElementById('detailEditBtn').addEventListener('click', () => {
   closeDetailModal();
   openEditModal(idx);
 });
-document.getElementById('detailRateBtn').addEventListener('click', () => {
-  const idx = detailSessionIdx;
-  const modal = document.querySelector('#detailModalOverlay .modal');
-  modal.classList.add('page-flip-out');
-  setTimeout(() => {
-    modal.classList.remove('page-flip-out');
-    document.getElementById('detailModalOverlay').classList.remove('open');
-    detailSessionIdx = -1;
-    openRatingModal(idx);
-  }, 200);
+document.getElementById('detailTabDetails').addEventListener('click', () => switchDetailPane(false));
+document.getElementById('detailTabRatings').addEventListener('click', () => switchDetailPane(true));
+document.getElementById('ratingsEditBtn').addEventListener('click', () => {
+  renderRatingsPaneEdit(allSessions[detailSessionIdx]);
+  document.getElementById('ratingsEditBtn').style.display = 'none';
+  document.getElementById('ratingsCancelBtn').style.display = '';
+});
+document.getElementById('ratingsCancelBtn').addEventListener('click', () => {
+  renderRatingsPaneLocked(allSessions[detailSessionIdx]);
+  document.getElementById('ratingsEditBtn').style.display = '';
+  document.getElementById('ratingsCancelBtn').style.display = 'none';
+  document.getElementById('ratingsSavePaneBtn').style.display = 'none';
+});
+document.getElementById('ratingsSavePaneBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('ratingsSavePaneBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  const members = allMembers || [];
+  const ratings = {};
+  members.forEach((m, i) => {
+    const slider = document.getElementById('rpslider-' + i);
+    const noteEl = document.getElementById('rpnote-' + i);
+    if (!slider) return;
+    const score = parseFloat(slider.value);
+    const note  = noteEl ? noteEl.value.trim() : '';
+    if (score > 0 || note) ratings[m] = { score: score > 0 ? score : null, note };
+  });
+  allSessions[detailSessionIdx].ratings = Object.keys(ratings).length ? ratings : null;
+  await githubSave();
+  applyFilters();
+  if (document.getElementById('ratingsView').classList.contains('active')) renderRatingsView();
+  renderRatingsPaneLocked(allSessions[detailSessionIdx]);
+  document.getElementById('ratingsEditBtn').style.display = '';
+  document.getElementById('ratingsCancelBtn').style.display = 'none';
+  btn.disabled = false;
+  btn.textContent = 'Save';
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDetailModal();
@@ -3083,77 +3204,91 @@ document.addEventListener('keydown', e => {
   document.querySelector('.header-title').addEventListener('click', showHome);
 })();
 
-// ─── Ratings Modal ────────────────────────────────────────────────────
-let ratingSessionIdx = -1;
+// ─── Detail modal pane switching ──────────────────────────────────────
+function switchDetailPane(toRatings, animate) {
+  const detailsPane = document.getElementById('detailDetailsPane');
+  const ratingsPane = document.getElementById('detailRatingsPane');
+  document.getElementById('detailTabDetails').classList.toggle('active', !toRatings);
+  document.getElementById('detailTabRatings').classList.toggle('active',  toRatings);
+  if (animate === false) {
+    detailsPane.style.display = toRatings ? 'none' : '';
+    ratingsPane.style.display = toRatings ? '' : 'none';
+    return;
+  }
+  const fromPane  = toRatings ? detailsPane : ratingsPane;
+  const toPane    = toRatings ? ratingsPane : detailsPane;
+  const outClass  = toRatings ? 'pane-flip-out-fwd' : 'pane-flip-out-bck';
+  const inClass   = toRatings ? 'pane-flip-in-fwd'  : 'pane-flip-in-bck';
+  fromPane.classList.add(outClass);
+  fromPane.addEventListener('animationend', () => {
+    fromPane.classList.remove(outClass);
+    fromPane.style.display = 'none';
+    toPane.style.display = '';
+    toPane.classList.add(inClass);
+    toPane.addEventListener('animationend', () => toPane.classList.remove(inClass), { once: true });
+  }, { once: true });
+}
 
-function openRatingModal(idx) {
-  ratingSessionIdx = idx;
-  const s = allSessions[idx];
-  if (!s) return;
-  document.getElementById('ratingModalWhisky').textContent = s.whisky || '–';
-  const existing = s.ratings || {};
-  document.getElementById('ratingMemberList').innerHTML = (allMembers || []).map((m, i) => {
-    const r = existing[m] || {};
+// ─── Ratings pane render functions ────────────────────────────────────
+let ratingsPaneOriginal = null;
+
+function renderRatingsPaneLocked(s) {
+  document.getElementById('ratingsSavePaneBtn').style.display = 'none';
+  document.getElementById('ratingsCancelBtn').style.display   = 'none';
+  document.getElementById('ratingsEditBtn').style.display     = '';
+  const ratings = s.ratings || {};
+  document.getElementById('ratingsPaneContent').innerHTML = (allMembers || []).map(m => {
+    const r     = ratings[m];
+    const score = r && r.score ? Number(r.score) : null;
+    const note  = r && r.note ? r.note : null;
+    return `<div class="rating-locked-row">
+        <span class="rating-locked-name">${esc(m)}</span>
+        <div class="rating-locked-bar-wrap">
+          ${score ? `<div class="rating-locked-bar" style="width:${score * 10}%"></div>` : ''}
+        </div>
+        <span class="rating-locked-score ${score ? '' : 'rating-locked-none'}">${score != null ? score : '–'}</span>
+      </div>
+      ${note ? `<div class="rating-locked-note">&ldquo;${esc(note)}&rdquo;</div>` : ''}`;
+  }).join('');
+}
+
+function renderRatingsPaneEdit(s) {
+  const ratings = s.ratings || {};
+  ratingsPaneOriginal = JSON.parse(JSON.stringify(ratings));
+  document.getElementById('ratingsPaneContent').innerHTML = (allMembers || []).map((m, i) => {
+    const r     = ratings[m] || {};
     const score = (r.score != null && r.score !== '') ? Number(r.score) : 0;
     const note  = r.note || '';
     return `<div class="rating-slider-row">
       <div class="rating-slider-top">
         <span class="rating-slider-name">${esc(m)}</span>
         <input class="rating-slider" type="range" min="0" max="10" step="0.5"
-          value="${score}" id="rslider-${i}"
-          oninput="document.getElementById('rsval-${i}').textContent=this.value==0?'–':this.value">
-        <span class="rating-slider-val" id="rsval-${i}">${score === 0 ? '–' : score}</span>
+          value="${score}" id="rpslider-${i}"
+          oninput="document.getElementById('rpval-${i}').textContent=this.value==0?'–':this.value;checkRatingsDirty()">
+        <span class="rating-slider-val" id="rpval-${i}">${score === 0 ? '–' : score}</span>
       </div>
       <input class="rating-slider-note" type="text" placeholder="Note (optional)…"
-        value="${esc(note)}" id="rsnote-${i}">
+        value="${esc(note)}" id="rpnote-${i}" oninput="checkRatingsDirty()">
     </div>`;
   }).join('');
-  const overlay = document.getElementById('ratingModalOverlay');
-  const modal   = overlay.querySelector('.modal');
-  modal.classList.add('page-flip-in');
-  overlay.classList.add('open');
-  modal.addEventListener('animationend', () => modal.classList.remove('page-flip-in'), { once: true });
 }
 
-function closeRatingModal() {
-  document.getElementById('ratingModalOverlay').classList.remove('open');
-  ratingSessionIdx = -1;
-}
-
-document.getElementById('ratingModalClose').addEventListener('click', closeRatingModal);
-document.getElementById('ratingCancelBtn').addEventListener('click', closeRatingModal);
-document.getElementById('ratingModalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('ratingModalOverlay')) closeRatingModal();
-});
-
-document.getElementById('ratingsSaveBtn').addEventListener('click', async () => {
-  if (ratingSessionIdx < 0) return;
-  const btn = document.getElementById('ratingsSaveBtn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
-
+function checkRatingsDirty() {
   const members = allMembers || [];
-  const ratings = {};
+  let dirty = false;
   members.forEach((m, i) => {
-    const slider = document.getElementById('rslider-' + i);
-    const noteEl = document.getElementById('rsnote-' + i);
+    const slider = document.getElementById('rpslider-' + i);
+    const noteEl = document.getElementById('rpnote-' + i);
     if (!slider) return;
-    const score = parseFloat(slider.value);
-    const note  = noteEl ? noteEl.value.trim() : '';
-    if (score > 0 || note) {
-      ratings[m] = { score: score > 0 ? score : null, note };
-    }
+    const score    = parseFloat(slider.value);
+    const note     = noteEl ? noteEl.value.trim() : '';
+    const orig     = (ratingsPaneOriginal || {})[m] || {};
+    const origScore = orig.score ? Number(orig.score) : 0;
+    const origNote  = orig.note  || '';
+    if (score !== origScore || note !== origNote) dirty = true;
   });
-
-  allSessions[ratingSessionIdx].ratings = Object.keys(ratings).length ? ratings : null;
-  await githubSave();
-  applyFilters();
-  if (document.getElementById('ratingsView').classList.contains('active')) renderRatingsView();
-  closeRatingModal();
-
-  btn.disabled = false;
-  btn.textContent = 'Save Ratings';
-});
+  document.getElementById('ratingsSavePaneBtn').style.display = dirty ? '' : 'none';
+}
 
 // ─── Ratings Tab View ─────────────────────────────────────────────────
 let activeRatingsMember = null;
