@@ -212,11 +212,11 @@ header::before {
   position: relative;
   z-index: 1;
   max-width: 1160px;
-  margin: 20px auto 0;
+  margin: 28px auto 0;
   padding: 0 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .controls-row {
@@ -224,23 +224,6 @@ header::before {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.filters-row {
-  overflow-x: auto;
-  flex-wrap: nowrap;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.filters-row::-webkit-scrollbar { display: none; }
-.filters-row .filter-group { flex-wrap: nowrap; }
-
-.filter-sep {
-  width: 1px;
-  height: 14px;
-  background: var(--border-gold);
-  flex-shrink: 0;
-  margin: 0 4px;
 }
 
 .search-input {
@@ -1340,7 +1323,8 @@ footer {
 <!-- ── Controls ────────────────────────────────────────────────────── -->
 <div class="controls-bar">
   <div class="controls-row">
-    <input class="search-input" type="text" id="searchBox" placeholder="Search…">
+    <input class="search-input" type="text" id="searchBox" placeholder="Search whiskies, regions, hosts…">
+    <div class="results-count" id="resultsCount"></div>
     <button class="stats-toggle" id="statsToggle">
       Ledger <span class="toggle-arrow">▾</span>
     </button>
@@ -1362,10 +1346,11 @@ footer {
     </div>
   </div>
 
-  <div class="controls-row filters-row">
+  <div class="controls-row">
     <span class="filter-label">Host</span>
     <div class="filter-group" id="hostPills"></div>
-    <span class="filter-sep"></span>
+  </div>
+  <div class="controls-row">
     <span class="filter-label">Round</span>
     <div class="filter-group" id="roundPills"></div>
   </div>
@@ -1829,6 +1814,8 @@ function applyFilters() {
     (s.host||'').toLowerCase().includes(searchQuery));
   filteredSessions = sessions;
   renderGrid();
+  document.getElementById('resultsCount').textContent =
+    sessions.length + ' entr' + (sessions.length === 1 ? 'y' : 'ies');
 }
 
 // ─── Grid & Cards ─────────────────────────────────────────────────────
