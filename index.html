@@ -646,6 +646,129 @@ header::before {
   box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 20px var(--gold-glow);
 }
 
+/* ── Detail Modal ────────────────────────────────────────────────── */
+.detail-modal { max-width: 560px; padding: 0; overflow: hidden; }
+
+.detail-hero {
+  width: 100%;
+  height: 200px;
+  background: #faf6f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.detail-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 20px;
+  mix-blend-mode: multiply;
+}
+.detail-hero-empty {
+  color: var(--text-faint);
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+.detail-body { padding: 28px 32px 32px; }
+
+.detail-badge {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 6px;
+}
+
+.detail-whisky {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--cream);
+  margin-bottom: 12px;
+  line-height: 1.2;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-meta-item {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.detail-meta-item strong {
+  color: var(--cream-dim);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+
+.detail-section-heading {
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.detail-distillery-name {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--cream);
+  margin-bottom: 8px;
+}
+
+.detail-wiki-extract {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.detail-links { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.detail-link {
+  font-family: var(--font-sans);
+  font-size: 0.63rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  border: 1px solid var(--border-gold);
+  padding: 5px 12px;
+  border-radius: var(--radius-xs);
+  transition: var(--transition);
+}
+.detail-link:hover { background: var(--gold-faint); color: var(--gold-lt); }
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
 /* ── Modal Overlay ───────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
@@ -1512,6 +1635,35 @@ footer {
   </div>
 </div>
 
+<!-- ── Detail Modal ───────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal detail-modal">
+    <button class="modal-close" id="detailModalClose">✕</button>
+    <div class="detail-hero" id="detailHero"></div>
+    <div class="detail-body">
+      <div class="detail-badge" id="detailBadge"></div>
+      <h2 class="detail-whisky" id="detailWhisky"></h2>
+      <div class="detail-meta" id="detailMeta"></div>
+
+      <div class="detail-section" id="detailDistillerySection">
+        <div class="detail-section-heading">The Distillery</div>
+        <div class="detail-distillery-name" id="detailDistilleryName"></div>
+        <div class="detail-wiki-extract" id="detailWikiExtract"></div>
+        <div class="detail-links" id="detailDistilleryLinks"></div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-heading">Find This Whisky</div>
+        <div class="detail-links" id="detailWhiskyLinks"></div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-primary" id="detailEditBtn">Edit Session</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Edit Modal ──────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="editModalOverlay">
   <div class="modal">
@@ -1871,7 +2023,7 @@ function renderCard(s) {
     ? `<img src="${esc(s.image_url)}" alt="${esc(s.whisky||'')}" onerror="this.closest('.card-image').innerHTML=noImgHtml()">`
     : noImgHtml();
   const badgeText = s.id ? s.id.replace(':', ' · ') : '–';
-  return `<div class="card" onclick="openEditModal(${allSessions.indexOf(s)})">
+  return `<div class="card" onclick="openDetailModal(${allSessions.indexOf(s)})">
     <div class="card-image">${img}</div>
     <div class="card-badge-rule">
       <span class="session-badge">${esc(badgeText)}</span>
@@ -2360,51 +2512,50 @@ function extractDistilleryName(whisky) {
 
 // Hardcoded distillery coordinates — no geocoding needed for known whiskies
 const DISTILLERY_COORDS = {
-  'Aberlour':      { lat: 57.4668, lng: -3.2280 },
-  'Amrut':         { lat: 13.009,  lng: 77.594  },
-  'AnCnoc':        { lat: 57.5635, lng: -2.7584 },
-  'Arbelour':      { lat: 57.4668, lng: -3.2280 }, // typo → Aberlour
-  'Aultmore':      { lat: 57.5676, lng: -3.0025 },
-  'BLADNOCH':      { lat: 54.8579, lng: -4.4638 },
-  'Bains':         { lat: -33.641, lng: 19.016  },
-  'Balvenie':      { lat: 57.449,  lng: -3.130  },
-  'Benromach':     { lat: 57.6137, lng: -3.6196 },
-  'Bowmore':       { lat: 55.7568, lng: -6.2900 },
-  'Bunnahabhain':  { lat: 55.8829, lng: -6.1270 },
-  'Bushmills':     { lat: 55.197,  lng: -6.522  },
-  'Cragganmore':   { lat: 57.4102, lng: -3.3943 },
-  'Craigellachie': { lat: 57.4897, lng: -3.1871 },
-  'Dark Lark':     { lat: -42.884, lng: 147.329 },
-  'Edradour':      { lat: 56.7022, lng: -3.6994 },
-  'G Rozeliers':   { lat: 48.392,  lng: 6.478   },
-  'Glen Elgin':    { lat: 57.5993, lng: -3.2782 },
-  'Glen Garioch':  { lat: 57.3383, lng: -2.3194 },
-  'GlenAllachie':  { lat: 57.4558, lng: -3.2313 },
-  'Glencadam':     { lat: 56.7363, lng: -2.6535 },
-  'Glendalough':   { lat: 53.085,  lng: -6.107  },
-  'Glengoyne':     { lat: 56.0139, lng: -4.3649 },
-  'Glengrant':     { lat: 57.524,  lng: -3.208  },
-  'Glenkinchie':   { lat: 55.8910, lng: -2.8906 },
-  'Hakushu':       { lat: 35.827,  lng: 138.302 },
-  'Hellyers Road': { lat: -41.089, lng: 145.909 },
-  'Lagavulin':     { lat: 55.6356, lng: -6.1261 },
-  'Ledaig':        { lat: 56.624,  lng: -6.071  },
-  'Longmorn':      { lat: 57.6089, lng: -3.2831 },
-  'Milk and Honey':{ lat: 32.064,  lng: 34.776  },
-  'Miyagikyo':     { lat: 38.269,  lng: 140.874 },
-  'Oban':          { lat: 56.4148, lng: -5.4716 },
-  'Oban Little Bay':{ lat: 56.4148, lng: -5.4716 },
-  'Penderyn':      { lat: 51.745,  lng: -3.481  },
-  'Pulteney':      { lat: 58.439,  lng: -3.095  },
-  'Sazerac':       { lat: 38.202,  lng: -84.876 },
-  'Starward':      { lat: -37.833, lng: 144.929 },
-  'Tallisker':     { lat: 57.301,  lng: -6.352  },
-  'Tamdhu':        { lat: 57.4591, lng: -3.3533 },
-  'Teeling':       { lat: 53.338,  lng: -6.277  },
-  'Tomatin':       { lat: 57.3390, lng: -4.0093 },
-  'Wolfburn':      { lat: 58.5957, lng: -3.5507 },
-  'Writers Tears': { lat: 52.509,  lng: -6.969  },
-  // No fixed distillery: Signatory (independent bottler), Johnny green, Proper, Shinobu
+  'Aberlour':      { lat: 57.4668, lng: -3.2280, url: 'https://www.aberlour.com',                    wiki: 'Aberlour_distillery' },
+  'Amrut':         { lat: 13.009,  lng: 77.594,  url: 'https://www.amrutdistilleries.com',           wiki: 'Amrut_Distilleries' },
+  'AnCnoc':        { lat: 57.5635, lng: -2.7584, url: 'https://www.ancnoc.com',                      wiki: 'Knockdhu_distillery' },
+  'Arbelour':      { lat: 57.4668, lng: -3.2280, url: 'https://www.aberlour.com',                    wiki: 'Aberlour_distillery' },
+  'Aultmore':      { lat: 57.5676, lng: -3.0025, url: 'https://www.aultmore.com',                    wiki: 'Aultmore_distillery' },
+  'BLADNOCH':      { lat: 54.8579, lng: -4.4638, url: 'https://www.bladnoch.com',                    wiki: 'Bladnoch_distillery' },
+  'Bains':         { lat: -33.641, lng: 19.016,  url: 'https://www.bainswhisky.com',                 wiki: 'James_Sedgwick_Distillery' },
+  'Balvenie':      { lat: 57.449,  lng: -3.130,  url: 'https://www.thebalvenie.com',                 wiki: 'Balvenie_distillery' },
+  'Benromach':     { lat: 57.6137, lng: -3.6196, url: 'https://www.benromach.com',                   wiki: 'Benromach_distillery' },
+  'Bowmore':       { lat: 55.7568, lng: -6.2900, url: 'https://www.bowmore.com',                     wiki: 'Bowmore_distillery' },
+  'Bunnahabhain':  { lat: 55.8829, lng: -6.1270, url: 'https://www.bunnahabhain.com',                wiki: 'Bunnahabhain_distillery' },
+  'Bushmills':     { lat: 55.197,  lng: -6.522,  url: 'https://www.bushmills.com',                   wiki: 'Old_Bushmills_Distillery' },
+  'Cragganmore':   { lat: 57.4102, lng: -3.3943, url: 'https://www.malts.com/en-gb/distilleries/cragganmore', wiki: 'Cragganmore_distillery' },
+  'Craigellachie': { lat: 57.4897, lng: -3.1871, url: 'https://www.craigellachie.com',               wiki: 'Craigellachie_distillery' },
+  'Dark Lark':     { lat: -42.884, lng: 147.329, url: 'https://larkdistillery.com',                  wiki: 'Lark_Distillery' },
+  'Edradour':      { lat: 56.7022, lng: -3.6994, url: 'https://www.edradour.com',                    wiki: 'Edradour_distillery' },
+  'G Rozeliers':   { lat: 48.392,  lng: 6.478,   url: 'https://www.rozelieures.com',                 wiki: 'Distillerie_G.Rozelieures' },
+  'Glen Elgin':    { lat: 57.5993, lng: -3.2782, url: 'https://www.malts.com/en-gb/distilleries/glen-elgin', wiki: 'Glen_Elgin_distillery' },
+  'Glen Garioch':  { lat: 57.3383, lng: -2.3194, url: 'https://www.glengarioch.com',                 wiki: 'Glen_Garioch_distillery' },
+  'GlenAllachie':  { lat: 57.4558, lng: -3.2313, url: 'https://www.theglenallachie.com',             wiki: 'GlenAllachie_distillery' },
+  'Glencadam':     { lat: 56.7363, lng: -2.6535, url: 'https://www.glencadam.com',                   wiki: 'Glencadam_distillery' },
+  'Glendalough':   { lat: 53.085,  lng: -6.107,  url: 'https://www.glendaloughdistillery.com',       wiki: 'Glendalough_Distillery' },
+  'Glengoyne':     { lat: 56.0139, lng: -4.3649, url: 'https://www.glengoyne.com',                   wiki: 'Glengoyne_distillery' },
+  'Glengrant':     { lat: 57.524,  lng: -3.208,  url: 'https://www.glengrant.com',                   wiki: 'Glen_Grant_distillery' },
+  'Glenkinchie':   { lat: 55.8910, lng: -2.8906, url: 'https://www.malts.com/en-gb/distilleries/glenkinchie', wiki: 'Glenkinchie_distillery' },
+  'Hakushu':       { lat: 35.827,  lng: 138.302, url: 'https://www.suntory.com/whisky/hakushu',      wiki: 'Hakushu_distillery' },
+  'Hellyers Road': { lat: -41.089, lng: 145.909, url: 'https://www.hellyersroaddistillery.com.au',   wiki: 'Hellyers_Road_Distillery' },
+  'Lagavulin':     { lat: 55.6356, lng: -6.1261, url: 'https://www.lagavulin.com',                   wiki: 'Lagavulin_distillery' },
+  'Ledaig':        { lat: 56.624,  lng: -6.071,  url: 'https://www.tobermorydistillery.com',         wiki: 'Tobermory_distillery' },
+  'Longmorn':      { lat: 57.6089, lng: -3.2831, url: 'https://www.longmorn.com',                    wiki: 'Longmorn_distillery' },
+  'Milk and Honey':{ lat: 32.064,  lng: 34.776,  url: 'https://www.mh-distillery.com',               wiki: 'M%26H_Distillery' },
+  'Miyagikyo':     { lat: 38.269,  lng: 140.874, url: 'https://www.nikka.com/eng/distilleries/miyagikyo', wiki: 'Miyagikyo_distillery' },
+  'Oban':          { lat: 56.4148, lng: -5.4716, url: 'https://www.obanwhisky.com',                  wiki: 'Oban_distillery' },
+  'Oban Little Bay':{ lat: 56.4148,lng: -5.4716, url: 'https://www.obanwhisky.com',                  wiki: 'Oban_distillery' },
+  'Penderyn':      { lat: 51.745,  lng: -3.481,  url: 'https://www.penderyn.wales',                  wiki: 'Penderyn_distillery' },
+  'Pulteney':      { lat: 58.439,  lng: -3.095,  url: 'https://www.oldpulteney.com',                 wiki: 'Pulteney_distillery' },
+  'Sazerac':       { lat: 38.202,  lng: -84.876, url: 'https://www.buffalotracedistillery.com',      wiki: 'Buffalo_Trace_Distillery' },
+  'Starward':      { lat: -37.833, lng: 144.929, url: 'https://www.starward.com.au',                 wiki: 'Starward_Whisky' },
+  'Tallisker':     { lat: 57.301,  lng: -6.352,  url: 'https://www.talisker.com',                    wiki: 'Talisker_distillery' },
+  'Tamdhu':        { lat: 57.4591, lng: -3.3533, url: 'https://www.tamdhu.com',                      wiki: 'Tamdhu_distillery' },
+  'Teeling':       { lat: 53.338,  lng: -6.277,  url: 'https://www.teelingwhiskey.com',              wiki: 'Teeling_Distillery' },
+  'Tomatin':       { lat: 57.3390, lng: -4.0093, url: 'https://www.tomatin.com',                     wiki: 'Tomatin_distillery' },
+  'Wolfburn':      { lat: 58.5957, lng: -3.5507, url: 'https://www.wolfburn.com',                    wiki: 'Wolfburn_distillery' },
+  'Writers Tears': { lat: 52.509,  lng: -6.969,  url: 'https://www.walshwhiskey.com',                wiki: 'Walsh_Whiskey' },
 };
 
 const geocacheStore = JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}');
@@ -2541,6 +2692,118 @@ document.addEventListener('visibilitychange', () => {
     if (el) el.focus();
     pendingImageFocus = null;
   }
+});
+
+// ─── Detail Modal ─────────────────────────────────────────────────────
+const WIKI_CACHE_KEY = 'fm_wiki';
+const wikiCache = JSON.parse(localStorage.getItem(WIKI_CACHE_KEY) || '{}');
+
+async function fetchWiki(distilleryName) {
+  if (wikiCache[distilleryName] !== undefined) return wikiCache[distilleryName];
+  const info = DISTILLERY_COORDS[distilleryName];
+  const slug = info?.wiki || encodeURIComponent((distilleryName + ' distillery').replace(/ /g, '_'));
+  try {
+    const res  = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`);
+    if (!res.ok) throw new Error();
+    const d    = await res.json();
+    const result = { extract: d.extract || null, wikiUrl: d.content_urls?.desktop?.page || null };
+    wikiCache[distilleryName] = result;
+    localStorage.setItem(WIKI_CACHE_KEY, JSON.stringify(wikiCache));
+    return result;
+  } catch {
+    wikiCache[distilleryName] = null;
+    localStorage.setItem(WIKI_CACHE_KEY, JSON.stringify(wikiCache));
+    return null;
+  }
+}
+
+let detailSessionIdx = -1;
+
+function openDetailModal(idx) {
+  const s = allSessions[idx];
+  if (!s) return;
+  detailSessionIdx = idx;
+
+  // Hero image
+  const hero = document.getElementById('detailHero');
+  if (s.image_url) {
+    hero.innerHTML = `<img src="${esc(s.image_url)}" alt="${esc(s.whisky||'')}" onerror="this.parentElement.innerHTML='<div class=\\'detail-hero-empty\\'>🥃</div>'">`;
+  } else {
+    hero.innerHTML = `<div class="detail-hero-empty">🥃</div>`;
+  }
+
+  // Badge & whisky name
+  document.getElementById('detailBadge').textContent  = s.id ? s.id.replace(':', ' · ') : '';
+  document.getElementById('detailWhisky').textContent = s.whisky || '–';
+
+  // Meta
+  document.getElementById('detailMeta').innerHTML = [
+    s.host   ? `<div class="detail-meta-item"><strong>Host</strong>${esc(s.host)}</div>`     : '',
+    s.date   ? `<div class="detail-meta-item"><strong>Date</strong>${esc(s.date)}</div>`     : '',
+    s.region ? `<div class="detail-meta-item"><strong>Region</strong>${esc(s.region)}</div>` : '',
+    s.rrp    ? `<div class="detail-meta-item"><strong>RRP</strong>$${esc(String(s.rrp))}</div>` : '',
+  ].join('');
+
+  // Distillery section
+  const distName    = s.whisky ? extractDistilleryName(s.whisky) : null;
+  const distInfo    = distName ? DISTILLERY_COORDS[distName] : null;
+  const distSection = document.getElementById('detailDistillerySection');
+
+  if (distName) {
+    distSection.style.display = '';
+    document.getElementById('detailDistilleryName').textContent = distName + ' Distillery';
+    document.getElementById('detailWikiExtract').textContent    = 'Loading…';
+    document.getElementById('detailDistilleryLinks').innerHTML  = distInfo?.url
+      ? `<a class="detail-link" href="${esc(distInfo.url)}" target="_blank" rel="noopener">Visit Distillery →</a>`
+      : '';
+
+    fetchWiki(distName).then(wiki => {
+      const extractEl = document.getElementById('detailWikiExtract');
+      if (!wiki?.extract) { extractEl.textContent = ''; return; }
+      let text = wiki.extract;
+      if (text.length > 300) {
+        const cut = text.lastIndexOf('.', 300);
+        text = cut > 80 ? text.slice(0, cut + 1) : text.slice(0, 300) + '…';
+      }
+      extractEl.textContent = text;
+      if (wiki.wikiUrl) {
+        const a = Object.assign(document.createElement('a'), {
+          className: 'detail-link', href: wiki.wikiUrl,
+          target: '_blank', rel: 'noopener', textContent: 'Wikipedia →'
+        });
+        document.getElementById('detailDistilleryLinks').appendChild(a);
+      }
+    });
+  } else {
+    distSection.style.display = 'none';
+  }
+
+  // Whisky find links
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent((s.whisky || '') + ' whisky')}`;
+  document.getElementById('detailWhiskyLinks').innerHTML = [
+    s.dm_url ? `<a class="detail-link" href="${esc(s.dm_url)}" target="_blank" rel="noopener">Dan Murphy's →</a>` : '',
+    `<a class="detail-link" href="${esc(searchUrl)}" target="_blank" rel="noopener">Search Online →</a>`,
+  ].join('');
+
+  document.getElementById('detailModalOverlay').classList.add('open');
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModalOverlay').classList.remove('open');
+  detailSessionIdx = -1;
+}
+
+document.getElementById('detailModalClose').addEventListener('click', closeDetailModal);
+document.getElementById('detailModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('detailModalOverlay')) closeDetailModal();
+});
+document.getElementById('detailEditBtn').addEventListener('click', () => {
+  const idx = detailSessionIdx;
+  closeDetailModal();
+  openEditModal(idx);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetailModal();
 });
 
 // ─── Home Page ────────────────────────────────────────────────────────
