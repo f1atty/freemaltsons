@@ -1188,6 +1188,46 @@ header::before {
 
 .header-title { cursor: pointer; }
 
+/* ── Tab Bar ─────────────────────────────────────────────────────────── */
+.tab-bar {
+  max-width: 1160px;
+  margin: 20px auto 0;
+  padding: 0 20px;
+  display: flex;
+  border-bottom: 1px solid var(--border-gold);
+  position: relative;
+  z-index: 1;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  margin-bottom: -1px;
+  transition: var(--transition);
+}
+
+.tab:hover { color: var(--gold); }
+.tab.active { color: var(--gold-lt); border-bottom-color: var(--gold); }
+
+/* ── Ledger View ─────────────────────────────────────────────────────── */
+.ledger-view {
+  display: none;
+  max-width: 1160px;
+  margin: 32px auto 80px;
+  padding: 0 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 40px;
+}
+.ledger-view.visible { display: grid; }
+
 /* ── Footer ─────────────────────────────────────────────────────────── */
 footer {
   text-align: center;
@@ -1320,32 +1360,19 @@ footer {
   </div>
 </header>
 
+<!-- ── Tab Bar ─────────────────────────────────────────────────────── -->
+<nav class="tab-bar">
+  <button class="tab active" id="tabSessions">Sessions</button>
+  <button class="tab" id="tabLedger">Ledger</button>
+  <button class="tab" id="tabMap">Map</button>
+</nav>
+
 <!-- ── Controls ────────────────────────────────────────────────────── -->
-<div class="controls-bar">
+<div class="controls-bar" id="controlsBar">
   <div class="controls-row">
     <input class="search-input" type="text" id="searchBox" placeholder="Search whiskies, regions, hosts…">
     <div class="results-count" id="resultsCount"></div>
-    <button class="stats-toggle" id="statsToggle">
-      Ledger <span class="toggle-arrow">▾</span>
-    </button>
-    <button class="map-toggle" id="mapToggle">Map</button>
   </div>
-
-  <div class="stats-panel" id="statsPanel">
-    <div class="ledger-block">
-      <div class="ledger-heading">Sessions Hosted</div>
-      <div id="hosting-leaderboard"></div>
-    </div>
-    <div class="ledger-block">
-      <div class="ledger-heading">Total Spend</div>
-      <div id="spend-leaderboard"></div>
-    </div>
-    <div class="ledger-block">
-      <div class="ledger-heading">Regions</div>
-      <div id="regions-list"></div>
-    </div>
-  </div>
-
   <div class="controls-row">
     <span class="filter-label">Host</span>
     <div class="filter-group" id="hostPills"></div>
@@ -1361,6 +1388,22 @@ footer {
 
 <!-- ── Map View ───────────────────────────────────────────────────────── -->
 <div id="mapView"><div id="map"></div></div>
+
+<!-- ── Ledger View ───────────────────────────────────────────────────── -->
+<div class="ledger-view" id="ledgerView">
+  <div class="ledger-block">
+    <div class="ledger-heading">Sessions Hosted</div>
+    <div id="hosting-leaderboard"></div>
+  </div>
+  <div class="ledger-block">
+    <div class="ledger-heading">Total Spend</div>
+    <div id="spend-leaderboard"></div>
+  </div>
+  <div class="ledger-block">
+    <div class="ledger-heading">Regions</div>
+    <div id="regions-list"></div>
+  </div>
+</div>
 
 <!-- ── FAB ─────────────────────────────────────────────────────────── -->
 <button class="fab" id="addBtn">Add Session</button>
@@ -1719,12 +1762,7 @@ function extractCountry(region) {
 }
 
 // ─── Stats toggle ─────────────────────────────────────────────────────
-document.getElementById('statsToggle').addEventListener('click', () => {
-  const btn   = document.getElementById('statsToggle');
-  const panel = document.getElementById('statsPanel');
-  btn.classList.toggle('open');
-  panel.classList.toggle('open');
-});
+// statsToggle removed — ledger is now a tab
 
 function renderLedger() {
   const sessions  = allSessions.filter(s => s.whisky && s.host);
@@ -2300,6 +2338,7 @@ const GEO_CACHE_KEY = 'fm_geocache';
 let mapInstance     = null;
 let mapPinsLoaded   = false;
 let mapViewActive   = false;
+let activeTab       = 'sessions';
 
 function extractDistilleryName(whisky) {
   if (!whisky) return null;
@@ -2471,34 +2510,29 @@ async function loadMapPins() {
   if (loader) loader.remove();
 }
 
-function showMapView() {
-  if (mapViewActive) return;
-  mapViewActive = true;
-  document.getElementById('sessionsGrid').style.display = 'none';
-  document.getElementById('mapView').style.display = 'block';
-  document.getElementById('addBtn').style.display = 'none';
-  document.getElementById('mapToggle').classList.add('active');
-  document.getElementById('mapToggle').textContent = 'Sessions';
-  setTimeout(() => {
-    initMap();
-    mapInstance.invalidateSize();
-    loadMapPins();
-  }, 50);
+function switchTab(tab) {
+  activeTab = tab;
+  ['sessions','ledger','map'].forEach(t => {
+    const id = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
+    document.getElementById(id).classList.toggle('active', t === tab);
+  });
+  const isSessions = tab === 'sessions';
+  const isMap      = tab === 'map';
+  const isLedger   = tab === 'ledger';
+  document.getElementById('sessionsGrid').style.display  = isSessions ? '' : 'none';
+  document.getElementById('controlsBar').style.display   = isSessions ? '' : 'none';
+  document.getElementById('addBtn').style.display        = isSessions ? '' : 'none';
+  document.getElementById('mapView').style.display       = isMap      ? 'block' : 'none';
+  document.getElementById('ledgerView').classList.toggle('visible', isLedger);
+  mapViewActive = isMap;
+  if (isMap) {
+    setTimeout(() => { initMap(); mapInstance.invalidateSize(); loadMapPins(); }, 50);
+  }
 }
 
-function showGridView() {
-  if (!mapViewActive) return;
-  mapViewActive = false;
-  document.getElementById('sessionsGrid').style.display = '';
-  document.getElementById('mapView').style.display = 'none';
-  document.getElementById('addBtn').style.display = '';
-  document.getElementById('mapToggle').classList.remove('active');
-  document.getElementById('mapToggle').textContent = 'Map';
-}
-
-document.getElementById('mapToggle').addEventListener('click', () => {
-  mapViewActive ? showGridView() : showMapView();
-});
+document.getElementById('tabSessions').addEventListener('click', () => switchTab('sessions'));
+document.getElementById('tabLedger').addEventListener('click',   () => switchTab('ledger'));
+document.getElementById('tabMap').addEventListener('click',      () => switchTab('map'));
 
 // ─── Auto-focus image URL field on tab return after Find ──────────────
 document.addEventListener('visibilitychange', () => {
