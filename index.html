@@ -3060,7 +3060,7 @@ function openDetailModal(idx) {
   detailSessionIdx = idx;
 
   // Always open on Details pane, reset ratings pane state
-  switchDetailPane(false, false);
+  switchDetailPane(false);
   renderRatingsPaneLocked(s);
 
   // Hero image
@@ -3207,28 +3207,13 @@ document.addEventListener('keydown', e => {
 })();
 
 // ─── Detail modal pane switching ──────────────────────────────────────
-function switchDetailPane(toRatings, animate) {
+function switchDetailPane(toRatings) {
   const detailsPane = document.getElementById('detailDetailsPane');
   const ratingsPane = document.getElementById('detailRatingsPane');
   document.getElementById('detailTabDetails').classList.toggle('active', !toRatings);
   document.getElementById('detailTabRatings').classList.toggle('active',  toRatings);
-  if (animate === false) {
-    detailsPane.style.display = toRatings ? 'none' : '';
-    ratingsPane.style.display = toRatings ? '' : 'none';
-    return;
-  }
-  const fromPane  = toRatings ? detailsPane : ratingsPane;
-  const toPane    = toRatings ? ratingsPane : detailsPane;
-  const outClass  = toRatings ? 'pane-flip-out-fwd' : 'pane-flip-out-bck';
-  const inClass   = toRatings ? 'pane-flip-in-fwd'  : 'pane-flip-in-bck';
-  fromPane.classList.add(outClass);
-  fromPane.addEventListener('animationend', () => {
-    fromPane.classList.remove(outClass);
-    fromPane.style.display = 'none';
-    toPane.style.display = '';
-    toPane.classList.add(inClass);
-    toPane.addEventListener('animationend', () => toPane.classList.remove(inClass), { once: true });
-  }, { once: true });
+  detailsPane.style.display = toRatings ? 'none' : '';
+  ratingsPane.style.display = toRatings ? '' : 'none';
 }
 
 // ─── Ratings pane render functions ────────────────────────────────────
