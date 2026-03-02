@@ -694,12 +694,16 @@ header::before {
 
 .detail-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
+  flex-wrap: nowrap;
+  gap: 0;
   margin-bottom: 24px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.detail-meta::-webkit-scrollbar { display: none; }
+.detail-meta-item + .detail-meta-item { border-left: 1px solid var(--border-gold); margin-left: 12px; padding-left: 12px; }
 
 .detail-meta-item {
   font-family: var(--font-sans);
