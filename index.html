@@ -1757,6 +1757,21 @@ footer {
 
 .ratings-buy-link:hover { color: var(--gold); }
 
+.ratings-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 0 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition);
+}
+.ratings-edit-btn:hover { color: var(--gold); }
+
 .ratings-empty {
   font-family: var(--font-serif);
   font-style: italic;
@@ -3424,7 +3439,9 @@ function renderRatingsView() {
       `<span class="pill${activeRatingsMember === m ? ' active' : ''}" onclick="filterRatingsBy('${esc(m)}')">${esc(m)}</span>`
     ).join('');
 
-  const rated = allSessions.filter(s => s.whisky && s.ratings && Object.keys(s.ratings).length);
+  const rated = allSessions
+    .map((s, idx) => ({ s, idx }))
+    .filter(({ s }) => s.whisky && s.ratings && Object.keys(s.ratings).length);
 
   if (!rated.length) {
     content.innerHTML = `<p class="ratings-empty">Open a whisky card, navigate to the Ratings tab and enter a rating.</p>`;
@@ -3433,18 +3450,18 @@ function renderRatingsView() {
 
   let rows;
   if (activeRatingsMember) {
-    rows = rated.map(s => {
+    rows = rated.map(({ s, idx }) => {
       const r = (s.ratings || {})[activeRatingsMember];
       if (!r || !r.score) return null;
-      return { whisky: s.whisky, rrp: s.rrp, score: Number(r.score), note: r.note || '', count: null };
+      return { whisky: s.whisky, rrp: s.rrp, score: Number(r.score), note: r.note || '', count: null, sessionIdx: idx };
     }).filter(Boolean);
   } else {
-    rows = rated.map(s => {
+    rows = rated.map(({ s, idx }) => {
       const scores = Object.values(s.ratings || {})
         .map(r => r && r.score ? Number(r.score) : null).filter(Boolean);
       if (!scores.length) return null;
       const avg = scores.reduce((a,b) => a+b,0) / scores.length;
-      return { whisky: s.whisky, rrp: s.rrp, score: Math.round(avg*10)/10, note: '', count: scores.length };
+      return { whisky: s.whisky, rrp: s.rrp, score: Math.round(avg*10)/10, note: '', count: scores.length, sessionIdx: idx };
     }).filter(Boolean);
   }
 
@@ -3465,6 +3482,7 @@ function renderRatingsView() {
         <div class="ratings-entry-info">
           <div class="ratings-entry-name">${esc(r.whisky)}</div>
           ${r.note ? `<div class="ratings-entry-note">&ldquo;${esc(r.note)}&rdquo;</div>` : ''}
+          <button class="ratings-edit-btn" onclick="openRatingsFromView(${r.sessionIdx})">Edit rating</button>
         </div>
         <span class="ratings-entry-score">${scoreLabel}</span>
         <span class="ratings-entry-price">${r.rrp ? '$'+Number(r.rrp).toFixed(0) : '–'}</span>
@@ -3477,6 +3495,14 @@ function renderRatingsView() {
 function filterRatingsBy(member) {
   activeRatingsMember = member;
   renderRatingsView();
+}
+
+function openRatingsFromView(sessionIdx) {
+  openDetailModal(sessionIdx);
+  switchDetailPane(true, false);
+  renderRatingsPaneEdit(allSessions[sessionIdx]);
+  document.getElementById('ratingsEditBtn').style.display = 'none';
+  document.getElementById('ratingsCancelBtn').style.display = '';
 }
 </script>
 </body>
