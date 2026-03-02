@@ -1460,6 +1460,193 @@ footer {
   z-index: 1000;
   pointer-events: none;
 }
+
+/* ── Ratings Modal ───────────────────────────────────────────────── */
+.rating-slider-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.rating-slider-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rating-slider-name {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--cream);
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.rating-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border-accent);
+  outline: none;
+  border-radius: 1px;
+  cursor: pointer;
+}
+
+.rating-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: 2px solid var(--bg-modal);
+  box-shadow: 0 0 0 1px var(--gold-dim);
+}
+
+.rating-slider-val {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--gold);
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rating-slider-note {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--cream);
+  padding: 5px 0;
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-style: italic;
+  outline: none;
+  margin-top: 7px;
+  transition: border-color var(--transition);
+}
+
+.rating-slider-note::placeholder { color: var(--text-faint); font-size: 0.8rem; }
+.rating-slider-note:focus { border-bottom-color: var(--border-accent); }
+
+/* ── Score badge on card ─────────────────────────────────────────── */
+.card-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--gold-faint);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  color: var(--gold);
+}
+
+/* ── Ratings tab view ────────────────────────────────────────────── */
+.ratings-view {
+  display: none;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px 20px 100px;
+}
+
+.ratings-view.active { display: block; }
+
+.ratings-member-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.ratings-member-section { margin-bottom: 8px; }
+
+.ratings-member-heading {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-gold);
+  margin-bottom: 4px;
+}
+
+.ratings-entry {
+  display: grid;
+  grid-template-columns: 22px 1fr 40px 52px 52px;
+  align-items: start;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ratings-entry-rank {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  padding-top: 2px;
+}
+
+.ratings-entry-info { min-width: 0; }
+
+.ratings-entry-name {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--cream);
+}
+
+.ratings-entry-note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ratings-entry-score {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--gold);
+  text-align: right;
+  padding-top: 1px;
+}
+
+.ratings-entry-price {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  text-align: right;
+  padding-top: 3px;
+}
+
+.ratings-buy-link {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--gold-dim);
+  text-decoration: none;
+  text-align: right;
+  padding-top: 3px;
+  transition: color var(--transition);
+}
+
+.ratings-buy-link:hover { color: var(--gold); }
+
+.ratings-empty {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-faint);
+  padding: 40px 0;
+  text-align: center;
+}
 </style>
 </head>
 <body>
@@ -1492,6 +1679,7 @@ footer {
   <button class="tab active" id="tabSessions">Sessions</button>
   <button class="tab" id="tabMap">Map</button>
   <button class="tab" id="tabLedger">Ledger</button>
+  <button class="tab" id="tabRatings">Ratings</button>
 </nav>
 
 <!-- ── Controls ────────────────────────────────────────────────────── -->
@@ -1530,6 +1718,12 @@ footer {
     <div class="ledger-heading">Regions</div>
     <div id="regions-list"></div>
   </div>
+</div>
+
+<!-- ── Ratings View ──────────────────────────────────────────────────── -->
+<div class="ratings-view" id="ratingsView">
+  <div class="ratings-member-filter" id="ratingsMemberFilter"></div>
+  <div id="ratingsViewContent"></div>
 </div>
 
 <!-- ── FAB ─────────────────────────────────────────────────────────── -->
@@ -1662,6 +1856,7 @@ footer {
       </div>
 
       <div class="detail-actions">
+        <button class="btn-back" id="detailRateBtn" style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--gold)">★ Rate</button>
         <button class="btn-primary" id="detailEditBtn">Edit Session</button>
       </div>
     </div>
@@ -1722,6 +1917,20 @@ footer {
     <div class="modal-actions">
       <button class="btn-back" id="editCancelBtn">Cancel</button>
       <button class="btn-primary" id="editSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Ratings Modal ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="ratingModalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="ratingModalClose">✕</button>
+    <div class="modal-step-label">Rate This Whisky</div>
+    <h2 class="modal-heading" id="ratingModalWhisky">–</h2>
+    <div id="ratingMemberList"></div>
+    <div class="modal-actions">
+      <button class="btn-back" id="ratingCancelBtn">Cancel</button>
+      <button class="btn-primary" id="ratingsSaveBtn">Save Ratings</button>
     </div>
   </div>
 </div>
@@ -2027,6 +2236,8 @@ function renderCard(s) {
     ? `<img src="${esc(s.image_url)}" alt="${esc(s.whisky||'')}" onerror="this.closest('.card-image').innerHTML=noImgHtml()">`
     : noImgHtml();
   const badgeText = s.id ? s.id.replace(':', ' · ') : '–';
+  const scores = Object.values(s.ratings || {}).map(r => r && r.score != null ? Number(r.score) : null).filter(v => v !== null && v > 0);
+  const avgScore = scores.length ? (scores.reduce((a,b) => a+b,0) / scores.length).toFixed(1) : null;
   return `<div class="card" onclick="openDetailModal(${allSessions.indexOf(s)})">
     <div class="card-image">${img}</div>
     <div class="card-badge-rule">
@@ -2039,7 +2250,10 @@ function renderCard(s) {
       <div class="card-divider"></div>
       <div class="card-meta">
         <span class="card-host">${esc(s.host||'')}</span>
-        ${s.rrp ? `<span class="card-rrp">$${s.rrp.toFixed(0)}</span>` : ''}
+        <span style="display:flex;align-items:center;gap:6px">
+          ${avgScore ? `<span class="card-score-badge">★ ${avgScore}</span>` : ''}
+          ${s.rrp ? `<span class="card-rrp">$${s.rrp.toFixed(0)}</span>` : ''}
+        </span>
       </div>
       ${s.date ? `<div class="card-date">${formatDate(s.date)}</div>` : ''}
     </div>
@@ -2667,27 +2881,31 @@ async function loadMapPins() {
 
 function switchTab(tab) {
   activeTab = tab;
-  ['sessions','ledger','map'].forEach(t => {
+  ['sessions','ledger','map','ratings'].forEach(t => {
     const id = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
     document.getElementById(id).classList.toggle('active', t === tab);
   });
   const isSessions = tab === 'sessions';
   const isMap      = tab === 'map';
   const isLedger   = tab === 'ledger';
+  const isRatings  = tab === 'ratings';
   document.getElementById('sessionsGrid').style.display  = isSessions ? '' : 'none';
   document.getElementById('controlsBar').style.display   = isSessions ? '' : 'none';
   document.getElementById('addBtn').style.display        = isSessions ? '' : 'none';
   document.getElementById('mapView').style.display       = isMap      ? 'block' : 'none';
   document.getElementById('ledgerView').classList.toggle('visible', isLedger);
+  document.getElementById('ratingsView').classList.toggle('active', isRatings);
   mapViewActive = isMap;
   if (isMap) {
     setTimeout(() => { initMap(); mapInstance.invalidateSize(); loadMapPins(); }, 50);
   }
+  if (isRatings) renderRatingsView();
 }
 
 document.getElementById('tabSessions').addEventListener('click', () => switchTab('sessions'));
 document.getElementById('tabLedger').addEventListener('click',   () => switchTab('ledger'));
 document.getElementById('tabMap').addEventListener('click',      () => switchTab('map'));
+document.getElementById('tabRatings').addEventListener('click',  () => switchTab('ratings'));
 
 // ─── Auto-focus image URL field on tab return after Find ──────────────
 document.addEventListener('visibilitychange', () => {
@@ -2806,6 +3024,11 @@ document.getElementById('detailEditBtn').addEventListener('click', () => {
   closeDetailModal();
   openEditModal(idx);
 });
+document.getElementById('detailRateBtn').addEventListener('click', () => {
+  const idx = detailSessionIdx;
+  closeDetailModal();
+  openRatingModal(idx);
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDetailModal();
 });
@@ -2833,6 +3056,144 @@ document.addEventListener('keydown', e => {
   document.getElementById('homeEnterBtn').addEventListener('click', enterApp);
   document.querySelector('.header-title').addEventListener('click', showHome);
 })();
+
+// ─── Ratings Modal ────────────────────────────────────────────────────
+let ratingSessionIdx = -1;
+
+function openRatingModal(idx) {
+  ratingSessionIdx = idx;
+  const s = allSessions[idx];
+  if (!s) return;
+  document.getElementById('ratingModalWhisky').textContent = s.whisky || '–';
+  const existing = s.ratings || {};
+  document.getElementById('ratingMemberList').innerHTML = (allMembers || []).map((m, i) => {
+    const r = existing[m] || {};
+    const score = (r.score != null && r.score !== '') ? Number(r.score) : 0;
+    const note  = r.note || '';
+    return `<div class="rating-slider-row">
+      <div class="rating-slider-top">
+        <span class="rating-slider-name">${esc(m)}</span>
+        <input class="rating-slider" type="range" min="0" max="10" step="0.5"
+          value="${score}" id="rslider-${i}"
+          oninput="document.getElementById('rsval-${i}').textContent=this.value==0?'–':this.value">
+        <span class="rating-slider-val" id="rsval-${i}">${score === 0 ? '–' : score}</span>
+      </div>
+      <input class="rating-slider-note" type="text" placeholder="Note (optional)…"
+        value="${esc(note)}" id="rsnote-${i}">
+    </div>`;
+  }).join('');
+  document.getElementById('ratingModalOverlay').classList.add('open');
+}
+
+function closeRatingModal() {
+  document.getElementById('ratingModalOverlay').classList.remove('open');
+  ratingSessionIdx = -1;
+}
+
+document.getElementById('ratingModalClose').addEventListener('click', closeRatingModal);
+document.getElementById('ratingCancelBtn').addEventListener('click', closeRatingModal);
+document.getElementById('ratingModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('ratingModalOverlay')) closeRatingModal();
+});
+
+document.getElementById('ratingsSaveBtn').addEventListener('click', async () => {
+  if (ratingSessionIdx < 0) return;
+  const btn = document.getElementById('ratingsSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const members = allMembers || [];
+  const ratings = {};
+  members.forEach((m, i) => {
+    const slider = document.getElementById('rslider-' + i);
+    const noteEl = document.getElementById('rsnote-' + i);
+    if (!slider) return;
+    const score = parseFloat(slider.value);
+    const note  = noteEl ? noteEl.value.trim() : '';
+    if (score > 0 || note) {
+      ratings[m] = { score: score > 0 ? score : null, note };
+    }
+  });
+
+  allSessions[ratingSessionIdx].ratings = Object.keys(ratings).length ? ratings : null;
+  await githubSave();
+  applyFilters();
+  if (document.getElementById('ratingsView').classList.contains('active')) renderRatingsView();
+  closeRatingModal();
+
+  btn.disabled = false;
+  btn.textContent = 'Save Ratings';
+});
+
+// ─── Ratings Tab View ─────────────────────────────────────────────────
+let activeRatingsMember = null;
+
+function renderRatingsView() {
+  const filter = document.getElementById('ratingsMemberFilter');
+  const content = document.getElementById('ratingsViewContent');
+  const members = allMembers || [];
+
+  // Member filter pills
+  filter.innerHTML =
+    `<span class="pill${!activeRatingsMember ? ' active' : ''}" onclick="filterRatingsBy(null)">All</span>` +
+    members.map(m =>
+      `<span class="pill${activeRatingsMember === m ? ' active' : ''}" onclick="filterRatingsBy('${esc(m)}')">${esc(m)}</span>`
+    ).join('');
+
+  const rated = allSessions.filter(s => s.whisky && s.ratings && Object.keys(s.ratings).length);
+
+  if (!rated.length) {
+    content.innerHTML = `<p class="ratings-empty">No ratings yet — tap a whisky card then ★ Rate to get started.</p>`;
+    return;
+  }
+
+  let rows;
+  if (activeRatingsMember) {
+    rows = rated.map(s => {
+      const r = (s.ratings || {})[activeRatingsMember];
+      if (!r || !r.score) return null;
+      return { whisky: s.whisky, rrp: s.rrp, score: Number(r.score), note: r.note || '', count: null };
+    }).filter(Boolean);
+  } else {
+    rows = rated.map(s => {
+      const scores = Object.values(s.ratings || {})
+        .map(r => r && r.score ? Number(r.score) : null).filter(Boolean);
+      if (!scores.length) return null;
+      const avg = scores.reduce((a,b) => a+b,0) / scores.length;
+      return { whisky: s.whisky, rrp: s.rrp, score: Math.round(avg*10)/10, note: '', count: scores.length };
+    }).filter(Boolean);
+  }
+
+  if (!rows.length) {
+    content.innerHTML = `<p class="ratings-empty">No ratings for ${esc(activeRatingsMember)} yet.</p>`;
+    return;
+  }
+
+  rows.sort((a,b) => b.score - a.score);
+
+  content.innerHTML = `<div class="ratings-member-section">
+    <div class="ratings-member-heading">${activeRatingsMember ? esc(activeRatingsMember) + "'s Rankings" : 'Overall Rankings'}</div>
+    ${rows.map((r, i) => {
+      const buyUrl = `https://www.google.com/search?q=${encodeURIComponent(r.whisky + ' whisky buy Australia')}`;
+      const scoreLabel = activeRatingsMember ? `${r.score}/10` : `${r.score}${r.count > 1 ? `<span style="font-size:0.7rem;color:var(--text-faint)"> (${r.count})</span>` : ''}`;
+      return `<div class="ratings-entry">
+        <span class="ratings-entry-rank">${i+1}</span>
+        <div class="ratings-entry-info">
+          <div class="ratings-entry-name">${esc(r.whisky)}</div>
+          ${r.note ? `<div class="ratings-entry-note">&ldquo;${esc(r.note)}&rdquo;</div>` : ''}
+        </div>
+        <span class="ratings-entry-score">${scoreLabel}</span>
+        <span class="ratings-entry-price">${r.rrp ? '$'+Number(r.rrp).toFixed(0) : '–'}</span>
+        <a class="ratings-buy-link" href="${buyUrl}" target="_blank" rel="noopener">Search ↗</a>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function filterRatingsBy(member) {
+  activeRatingsMember = member;
+  renderRatingsView();
+}
 </script>
 </body>
 </html>
