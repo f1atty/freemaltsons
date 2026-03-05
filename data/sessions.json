@@ -569,7 +569,12 @@
       "rrp": 130,
       "notes": null,
       "dm_url": null,
-      "ratings": null
+      "ratings": {
+        "Flatty": {
+          "score": 6.5,
+          "note": ""
+        }
+      }
     }
   ],
   "members": [
