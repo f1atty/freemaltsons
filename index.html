@@ -1454,7 +1454,6 @@ header::before {
 
 .signin-view.fade-out {
   opacity: 0;
-  pointer-events: none;
 }
 
 .signin-inner {
@@ -3552,6 +3551,8 @@ async function sha256(str) {
     const hash = await sha256(pin);
     if (hash === MEMBER_PINS[selectedMember]) {
       sessionStorage.setItem('fm_user', selectedMember);
+      switchTab('sessions');
+      window.scrollTo({ top: 0, behavior: 'instant' });
       signinView.classList.add('fade-out');
       signinView.addEventListener('transitionend', () => {
         signinView.style.display = 'none';
