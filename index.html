@@ -1698,6 +1698,7 @@ footer {
 .fm-popup-notes { margin-top: 6px; }
 .fm-popup-note { font-size: 0.62rem; color: var(--text-dim); font-style: italic; line-height: 1.4; margin-top: 2px; }
 .fm-popup-note-member { color: var(--gold-dim); font-style: normal; font-weight: 600; }
+.fm-popup-whisky-desc { font-size: 0.63rem; color: var(--text-dim); font-style: italic; line-height: 1.5; margin-top: 5px; }
 
 /* Map toggle button */
 .map-toggle {
@@ -3118,15 +3119,11 @@ async function geocodeDistillery(name) {
 }
 
 function buildPopupHtml(distilleryName, sessions) {
-  const items = sessions.map(s => {
-    const noteParts = Object.entries(s.ratings || {})
-      .filter(([, r]) => r?.note && r.note.trim())
-      .map(([m, r]) => `<div class="fm-popup-note"><span class="fm-popup-note-member">${esc(m)}</span> — ${esc(r.note)}</div>`)
-      .join('');
-    return `
+  const items = sessions.map((s, i) => `
     <div class="fm-popup-session">
       ${s.image_url ? `<img class="fm-popup-img" src="${esc(s.image_url)}" onerror="this.style.display='none'">` : ''}
       <div class="fm-popup-whisky">${esc(s.whisky || '–')}</div>
+      <div class="fm-popup-whisky-desc" data-i="${i}" style="display:none"></div>
       <div class="fm-popup-meta">
         ${s.id   ? `<span>${esc(s.id.replace(':', ' · '))}</span>` : ''}
         ${s.date ? `<span>${esc(s.date)}</span>` : ''}
@@ -3134,9 +3131,7 @@ function buildPopupHtml(distilleryName, sessions) {
         ${s.rrp  ? `<span>$${esc(String(s.rrp))}</span>` : ''}
         ${s.host ? `<span>${esc(s.host)}</span>` : ''}
       </div>
-      ${noteParts ? `<div class="fm-popup-notes">${noteParts}</div>` : ''}
-    </div>`;
-  }).join('');
+    </div>`).join('');
   return `<div class="fm-popup"><div class="fm-popup-title">${esc(distilleryName)} Distillery</div><div class="fm-popup-wiki">Loading distillery info…</div>${items}</div>`;
 }
 
@@ -3199,16 +3194,34 @@ async function loadMapPins() {
       .addTo(mapInstance)
       .bindPopup(buildPopupHtml(name, groups[name]), { maxWidth: 300 });
     marker.on('popupopen', async () => {
-      const wikiEl = marker.getPopup().getElement()?.querySelector('.fm-popup-wiki');
-      if (!wikiEl) return;
-      wikiEl.style.display = '';
-      wikiEl.textContent = 'Loading distillery info…';
-      const wiki = await fetchWiki(name);
-      if (wiki?.extract) {
-        const short = wiki.extract.split('. ').slice(0, 2).join('. ').replace(/\s+$/, '') + '.';
-        wikiEl.textContent = short;
-      } else {
-        wikiEl.style.display = 'none';
+      const popupEl = marker.getPopup().getElement();
+      if (!popupEl) return;
+
+      // Distillery summary
+      const wikiEl = popupEl.querySelector('.fm-popup-wiki');
+      if (wikiEl) {
+        wikiEl.style.display = '';
+        wikiEl.textContent = 'Loading distillery info…';
+        const wiki = await fetchWiki(name);
+        if (wiki?.extract) {
+          const short = wiki.extract.split('. ').slice(0, 2).join('. ').replace(/\s+$/, '') + '.';
+          wikiEl.textContent = short;
+        } else {
+          wikiEl.style.display = 'none';
+        }
+      }
+
+      // Per-whisky description from Wikipedia
+      const sessions = groups[name];
+      for (let i = 0; i < sessions.length; i++) {
+        const descEl = popupEl.querySelector(`.fm-popup-whisky-desc[data-i="${i}"]`);
+        if (!descEl) continue;
+        const desc = await fetchWhiskyDesc(sessions[i].whisky);
+        if (desc?.extract) {
+          const short = desc.extract.split('. ').slice(0, 2).join('. ').replace(/\s+$/, '') + '.';
+          descEl.textContent = short;
+          descEl.style.display = '';
+        }
       }
     });
   }
@@ -3256,6 +3269,25 @@ document.addEventListener('visibilitychange', () => {
 // ─── Detail Modal ─────────────────────────────────────────────────────
 const WIKI_CACHE_KEY = 'fm_wiki';
 const wikiCache = JSON.parse(localStorage.getItem(WIKI_CACHE_KEY) || '{}');
+
+async function fetchWhiskyDesc(whiskyName) {
+  const key = 'w:' + whiskyName;
+  if (wikiCache[key] !== undefined) return wikiCache[key];
+  const slug = encodeURIComponent(whiskyName.replace(/ /g, '_'));
+  try {
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const result = d.extract ? { extract: d.extract } : null;
+    wikiCache[key] = result;
+    localStorage.setItem(WIKI_CACHE_KEY, JSON.stringify(wikiCache));
+    return result;
+  } catch {
+    wikiCache[key] = null;
+    localStorage.setItem(WIKI_CACHE_KEY, JSON.stringify(wikiCache));
+    return null;
+  }
+}
 
 async function fetchWiki(distilleryName) {
   if (wikiCache[distilleryName] !== undefined) return wikiCache[distilleryName];
