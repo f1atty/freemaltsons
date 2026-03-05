@@ -1681,9 +1681,17 @@ footer {
   max-height: 100px;
   object-fit: contain;
   margin-bottom: 6px;
-  mix-blend-mode: multiply;
   background: #faf6f0;
   border-radius: 2px;
+}
+.fm-popup-wiki {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-gold);
+  font-style: italic;
 }
 .fm-popup-whisky { font-size: 0.8rem; font-weight: 600; color: var(--cream); margin-bottom: 4px; }
 .fm-popup-meta { font-size: 0.65rem; color: var(--text-dim); display: flex; flex-wrap: wrap; gap: 4px 8px; }
@@ -3119,7 +3127,7 @@ function buildPopupHtml(distilleryName, sessions) {
         ${s.host ? `<span>${esc(s.host)}</span>` : ''}
       </div>
     </div>`).join('');
-  return `<div class="fm-popup"><div class="fm-popup-title">${esc(distilleryName)} Distillery</div>${items}</div>`;
+  return `<div class="fm-popup"><div class="fm-popup-title">${esc(distilleryName)} Distillery</div><div class="fm-popup-wiki">Loading distillery info…</div>${items}</div>`;
 }
 
 function initMap() {
@@ -3177,9 +3185,20 @@ async function loadMapPins() {
     if (!coords) continue;
 
     const icon = L.divIcon({ html: '<div class="map-pin"></div>', className: '', iconSize: [12, 12], iconAnchor: [6, 6] });
-    L.marker([coords.lat, coords.lng], { icon })
+    const marker = L.marker([coords.lat, coords.lng], { icon })
       .addTo(mapInstance)
-      .bindPopup(buildPopupHtml(name, groups[name]), { maxWidth: 280 });
+      .bindPopup(buildPopupHtml(name, groups[name]), { maxWidth: 300 });
+    marker.on('popupopen', async () => {
+      const wikiEl = marker.getPopup().getElement()?.querySelector('.fm-popup-wiki');
+      if (!wikiEl) return;
+      const wiki = await fetchWiki(name);
+      if (wiki?.extract) {
+        const short = wiki.extract.split('. ').slice(0, 2).join('. ').replace(/\s+$/, '') + '.';
+        wikiEl.textContent = short;
+      } else {
+        wikiEl.remove();
+      }
+    });
   }
 
   if (loader) loader.remove();
