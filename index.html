@@ -1695,6 +1695,9 @@ footer {
 }
 .fm-popup-whisky { font-size: 0.8rem; font-weight: 600; color: var(--cream); margin-bottom: 4px; }
 .fm-popup-meta { font-size: 0.65rem; color: var(--text-dim); display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.fm-popup-notes { margin-top: 6px; }
+.fm-popup-note { font-size: 0.62rem; color: var(--text-dim); font-style: italic; line-height: 1.4; margin-top: 2px; }
+.fm-popup-note-member { color: var(--gold-dim); font-style: normal; font-weight: 600; }
 
 /* Map toggle button */
 .map-toggle {
@@ -3115,7 +3118,12 @@ async function geocodeDistillery(name) {
 }
 
 function buildPopupHtml(distilleryName, sessions) {
-  const items = sessions.map(s => `
+  const items = sessions.map(s => {
+    const noteParts = Object.entries(s.ratings || {})
+      .filter(([, r]) => r?.note && r.note.trim())
+      .map(([m, r]) => `<div class="fm-popup-note"><span class="fm-popup-note-member">${esc(m)}</span> — ${esc(r.note)}</div>`)
+      .join('');
+    return `
     <div class="fm-popup-session">
       ${s.image_url ? `<img class="fm-popup-img" src="${esc(s.image_url)}" onerror="this.style.display='none'">` : ''}
       <div class="fm-popup-whisky">${esc(s.whisky || '–')}</div>
@@ -3126,7 +3134,9 @@ function buildPopupHtml(distilleryName, sessions) {
         ${s.rrp  ? `<span>$${esc(String(s.rrp))}</span>` : ''}
         ${s.host ? `<span>${esc(s.host)}</span>` : ''}
       </div>
-    </div>`).join('');
+      ${noteParts ? `<div class="fm-popup-notes">${noteParts}</div>` : ''}
+    </div>`;
+  }).join('');
   return `<div class="fm-popup"><div class="fm-popup-title">${esc(distilleryName)} Distillery</div><div class="fm-popup-wiki">Loading distillery info…</div>${items}</div>`;
 }
 
@@ -3191,12 +3201,14 @@ async function loadMapPins() {
     marker.on('popupopen', async () => {
       const wikiEl = marker.getPopup().getElement()?.querySelector('.fm-popup-wiki');
       if (!wikiEl) return;
+      wikiEl.style.display = '';
+      wikiEl.textContent = 'Loading distillery info…';
       const wiki = await fetchWiki(name);
       if (wiki?.extract) {
         const short = wiki.extract.split('. ').slice(0, 2).join('. ').replace(/\s+$/, '') + '.';
         wikiEl.textContent = short;
       } else {
-        wikiEl.remove();
+        wikiEl.style.display = 'none';
       }
     });
   }
