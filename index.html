@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- freemaltsons app -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1272,6 +1273,22 @@ header::before {
 
 .btn-back:hover { color: var(--cream-dim); }
 
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(180,40,40,0.5);
+  color: #c0504a;
+  padding: 10px 18px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-danger:hover { background: rgba(180,40,40,0.15); border-color: rgba(180,40,40,0.8); }
+
 .btn-primary {
   background: var(--bg-surface-lt);
   border: 1px solid var(--gold-dim);
@@ -2378,7 +2395,15 @@ footer {
 
     <div class="modal-actions">
       <button class="btn-back" id="editCancelBtn">Cancel</button>
+      <button class="btn-danger" id="editDeleteBtn" style="margin-right:auto">Delete</button>
       <button class="btn-primary" id="editSaveBtn">Save</button>
+    </div>
+    <div id="editDeleteConfirm" style="display:none;margin-top:12px;padding:12px;background:rgba(180,40,40,0.15);border:1px solid rgba(180,40,40,0.4);border-radius:8px;text-align:center;font-family:var(--font-sans);font-size:0.82rem;color:var(--text-dim)">
+      Delete this session permanently?
+      <div style="margin-top:10px;display:flex;gap:10px;justify-content:center">
+        <button class="btn-back" id="editDeleteCancelBtn">No, keep it</button>
+        <button class="btn-danger" id="editDeleteConfirmBtn">Yes, delete</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3189,6 +3214,16 @@ function setupEditModal() {
   document.getElementById('editModalOverlay').addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) saveEditSession();
   });
+
+  document.getElementById('editDeleteBtn').addEventListener('click', () => {
+    document.getElementById('editDeleteConfirm').style.display = 'block';
+    document.getElementById('editDeleteBtn').style.display = 'none';
+  });
+  document.getElementById('editDeleteCancelBtn').addEventListener('click', () => {
+    document.getElementById('editDeleteConfirm').style.display = 'none';
+    document.getElementById('editDeleteBtn').style.display = '';
+  });
+  document.getElementById('editDeleteConfirmBtn').addEventListener('click', deleteEditSession);
 }
 
 function openEditModal(idx) {
@@ -3210,6 +3245,8 @@ function openEditModal(idx) {
   if (s.image_url) showEditImagePreview(s.image_url);
   else document.getElementById('editImagePreview').style.display = 'none';
 
+  document.getElementById('editDeleteConfirm').style.display = 'none';
+  document.getElementById('editDeleteBtn').style.display = '';
   document.getElementById('editModalOverlay').classList.add('open');
 }
 
@@ -3256,6 +3293,30 @@ async function saveEditSession() {
 
   btn.disabled    = false;
   btn.textContent = 'Save';
+}
+
+async function deleteEditSession() {
+  if (editingSessionIdx < 0) return;
+  const btn = document.getElementById('editDeleteConfirmBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Deleting…';
+
+  allSessions.splice(editingSessionIdx, 1);
+
+  await githubSave();
+  renderHeaderStats();
+  renderLedger();
+  applyFilters();
+
+  // Close without reopening detail modal
+  document.getElementById('editModalOverlay').classList.remove('open');
+  document.getElementById('detailModalOverlay').classList.remove('open');
+  editingSessionIdx = -1;
+
+  btn.disabled    = false;
+  btn.textContent = 'Yes, delete';
+  document.getElementById('editDeleteConfirm').style.display = 'none';
+  document.getElementById('editDeleteBtn').style.display = '';
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────
@@ -4214,3 +4275,8 @@ function openRatingsFromView(sessionIdx) {
 </script>
 </body>
 </html>
+
+
+
+
+
