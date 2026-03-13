@@ -3869,14 +3869,17 @@ document.getElementById('ratingsSavePaneBtn').addEventListener('click', async ()
   btn.disabled = true;
   btn.textContent = 'Saving…';
   const members = allMembers || [];
-  const ratings = {};
+  const me = currentMember().toLowerCase();
+  const ratings = JSON.parse(JSON.stringify(allSessions[detailSessionIdx].ratings || {}));
   members.forEach((m, i) => {
+    if (m.toLowerCase() !== me) return;
     const slider = document.getElementById('rpslider-' + i);
     const noteEl = document.getElementById('rpnote-' + i);
     if (!slider) return;
     const score = parseFloat(slider.value);
     const note  = noteEl ? noteEl.value.trim() : '';
     if (score > 0 || note) ratings[m] = { score: score > 0 ? score : null, note };
+    else delete ratings[m];
   });
   allSessions[detailSessionIdx].ratings = Object.keys(ratings).length ? ratings : null;
   await githubSave();
@@ -4157,28 +4160,41 @@ function renderRatingsPaneLocked(s) {
 function renderRatingsPaneEdit(s) {
   const ratings = s.ratings || {};
   ratingsPaneOriginal = JSON.parse(JSON.stringify(ratings));
+  const me = currentMember().toLowerCase();
   document.getElementById('ratingsPaneContent').innerHTML = (allMembers || []).map((m, i) => {
     const r     = ratings[m] || {};
     const score = (r.score != null && r.score !== '') ? Number(r.score) : 0;
     const note  = r.note || '';
-    return `<div class="rating-slider-row">
-      <div class="rating-slider-top">
-        <span class="rating-slider-name">${esc(m)}</span>
-        <input class="rating-slider" type="range" min="0" max="10" step="0.5"
-          value="${score}" id="rpslider-${i}"
-          oninput="document.getElementById('rpval-${i}').textContent=this.value==0?'–':this.value;checkRatingsDirty()">
-        <span class="rating-slider-val" id="rpval-${i}">${score === 0 ? '–' : score}</span>
+    if (m.toLowerCase() === me) {
+      return `<div class="rating-slider-row">
+        <div class="rating-slider-top">
+          <span class="rating-slider-name">${esc(m)}</span>
+          <input class="rating-slider" type="range" min="0" max="10" step="0.5"
+            value="${score}" id="rpslider-${i}"
+            oninput="document.getElementById('rpval-${i}').textContent=this.value==0?'–':this.value;checkRatingsDirty()">
+          <span class="rating-slider-val" id="rpval-${i}">${score === 0 ? '–' : score}</span>
+        </div>
+        <input class="rating-slider-note" type="text" placeholder="Note (optional)…"
+          value="${esc(note)}" id="rpnote-${i}" oninput="checkRatingsDirty()">
+      </div>`;
+    }
+    return `<div class="rating-locked-row">
+        <span class="rating-locked-name">${esc(m)}</span>
+        <div class="rating-locked-bar-wrap">
+          ${score ? `<div class="rating-locked-bar" style="width:${score * 10}%"></div>` : ''}
+        </div>
+        <span class="rating-locked-score ${score ? '' : 'rating-locked-none'}">${score || '–'}</span>
       </div>
-      <input class="rating-slider-note" type="text" placeholder="Note (optional)…"
-        value="${esc(note)}" id="rpnote-${i}" oninput="checkRatingsDirty()">
-    </div>`;
+      ${note ? `<div class="rating-locked-note">&ldquo;${esc(note)}&rdquo;</div>` : ''}`;
   }).join('');
 }
 
 function checkRatingsDirty() {
   const members = allMembers || [];
+  const me = currentMember().toLowerCase();
   let dirty = false;
   members.forEach((m, i) => {
+    if (m.toLowerCase() !== me) return;
     const slider = document.getElementById('rpslider-' + i);
     const noteEl = document.getElementById('rpnote-' + i);
     if (!slider) return;
@@ -4250,7 +4266,7 @@ function renderRatingsView() {
         <div class="ratings-entry-info">
           <div class="ratings-entry-name">${esc(r.whisky)}</div>
           ${r.note ? `<div class="ratings-entry-note">&ldquo;${esc(r.note)}&rdquo;</div>` : ''}
-          <button class="ratings-edit-btn" onclick="openRatingsFromView(${r.sessionIdx})">Edit rating</button>
+          ${!activeRatingsMember || activeRatingsMember.toLowerCase() === currentMember().toLowerCase() ? `<button class="ratings-edit-btn" onclick="openRatingsFromView(${r.sessionIdx})">Edit rating</button>` : ''}
         </div>
         <span class="ratings-entry-score">${scoreLabel}</span>
         <span class="ratings-entry-price">${r.rrp ? '$'+Number(r.rrp).toFixed(0) : '–'}</span>
