@@ -588,6 +588,19 @@
       "location": null,
       "whisky_hidden": false,
       "notes": null
+    },
+    {
+      "id": "IX:VII",
+      "date": "2026-07-02",
+      "host": "Cheese",
+      "whisky": null,
+      "region": null,
+      "rrp": null,
+      "image_url": null,
+      "dm_url": null,
+      "location": "Village high road",
+      "whisky_hidden": false,
+      "notes": null
     }
   ],
   "members": [
