@@ -2417,7 +2417,7 @@ footer {
     <div class="field">
       <label class="field-label">GitHub Personal Access Token</label>
       <input class="modal-input" id="patInput" type="password" placeholder="github_pat_…" autocomplete="off">
-      <div class="field-hint">Fine-grained token → danielf-neara/freemaltsons → Contents: Read and write</div>
+      <div class="field-hint">Fine-grained token → f1atty/freemaltsons → Contents: Read and write</div>
     </div>
     <div class="field">
       <label class="field-label">Google API Key <span class="field-note">for bottle image search</span></label>
@@ -2440,7 +2440,7 @@ footer {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 // ─── Constants ────────────────────────────────────────────────────────
-const GITHUB_REPO   = 'danielf-neara/freemaltsons';
+const GITHUB_REPO   = 'f1atty/freemaltsons';
 const GITHUB_DATA   = 'data/sessions.json';
 const PAT_KEY       = 'freemaltsons_pat';
 const GOOGLE_KEY_LS = 'freemaltsons_google_key';
@@ -2556,7 +2556,7 @@ function computeNextId(sessions) {
 window.addEventListener('DOMContentLoaded', async () => {
   setSyncStatus('syncing');
   // Load whisky library in background (raw GitHub URL works everywhere)
-  fetch('https://raw.githubusercontent.com/danielf-neara/freemaltsons/main/data/whisky-library.json')
+  fetch('https://raw.githubusercontent.com/f1atty/freemaltsons/main/data/whisky-library.json')
     .then(r => r.json()).then(d => { whiskyLibrary = d; }).catch(() => {});
 
   const data = await githubLoad();
