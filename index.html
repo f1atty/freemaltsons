@@ -1887,6 +1887,20 @@ footer {
 }
 .game-round-row span:last-child { color: var(--gold-lt); white-space: nowrap; }
 .game-round-row small { display: block; color: var(--text-faint); font-size: 0.66rem; margin-top: 2px; }
+.game-done-lbl { font-family: var(--font-sans); font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+.game-note { font-family: var(--font-sans); font-size: 0.7rem; color: var(--text-dim); margin: 0 0 18px; }
+.game-board { text-align: left; margin-top: 26px; }
+.game-board h3 {
+  font-family: var(--font-sans); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--gold); margin: 0 0 6px;
+}
+.game-board-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-family: var(--font-sans); font-size: 0.74rem; }
+.game-board-table th { text-align: right; font-weight: 500; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); padding: 6px 4px; border-bottom: 1px solid var(--border-gold); }
+.game-board-table td { text-align: right; color: var(--cream-dim); padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.game-board-table th:first-child, .game-board-table td:first-child { text-align: left; }
+.game-board-table td.pts { color: var(--gold-lt); }
+.game-board-table tr.me td { color: var(--cream); }
+.game-board-empty { font-family: var(--font-sans); font-size: 0.72rem; color: var(--text-faint); padding: 8px 0 18px; }
 .game-pin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--cream); }
 .game-pin.guess { background: var(--amber); }
 .game-pin.answer { background: var(--gold-lt); box-shadow: 0 0 12px rgba(221,185,106,0.8); }
@@ -2202,13 +2216,7 @@ footer {
 
 <!-- ── Game View (Dram Drop) ─────────────────────────────────────────── -->
 <div class="game-view" id="gameView">
-  <div class="game-intro" id="gameIntro">
-    <h2>Dram Drop</h2>
-    <p>Five distilleries. Drop a pin where you think each one is.<br>
-       Up to 100 points a round, depending on how close you get.</p>
-    <div class="game-best" id="gameBestIntro"></div>
-    <button class="btn-primary" id="gameStartBtn">Start game</button>
-  </div>
+  <div class="game-intro" id="gameIntro"></div>
   <div id="gamePlay" style="display:none">
     <div class="game-top">
       <div>
@@ -2229,7 +2237,6 @@ footer {
       <button class="btn-primary" id="gameActionBtn" style="visibility:hidden">Next</button>
     </div>
   </div>
-  <div class="game-summary" id="gameSummary" style="display:none"></div>
 </div>
 
 <!-- ── FAB ─────────────────────────────────────────────────────────── -->
@@ -3692,6 +3699,7 @@ function switchTab(tab) {
   }
   if (isRatings) renderRatingsView();
   if (isGame && gameMap) setTimeout(() => gameMap.resize(), 50);
+  if (isGame && !gamePlaying) gameRenderIntro();
 }
 
 document.getElementById('tabSessions').addEventListener('click', () => switchTab('sessions'));
@@ -3786,7 +3794,9 @@ const GAME_DISTILLERIES = [
 
 const GAME_ROUNDS     = 5;
 const GAME_MAX_SCOT   = 2;   // cap Scottish picks per game so it's not all Speyside
-const GAME_BEST_KEY   = 'fm_dramdrop_best';
+const GAME_DATA       = 'data/dramdrop.json';      // shared scoreboard, written via the GitHub API
+const GAME_TZ         = 'Australia/Sydney';        // everyone's "day" rolls over at Sydney midnight
+const GAME_PROGRESS   = 'fm_dramdrop_';            // + member + date: in-progress/finished game on this device
 const GAME_REVEAL_MS  = 3500;  // how long the answer shows before auto-advancing
 let gameMap = null, gameGuess = null, gameTimer = null;
 let gameState = null;  // { picks, round, results, locked }
@@ -3804,8 +3814,27 @@ function gameScore(km) {
   return Math.max(0, Math.round(100 * Math.exp(-(km - 10) / 1500)));
 }
 
-function gamePickRounds() {
-  const pool = [...GAME_DISTILLERIES].sort(() => Math.random() - 0.5);
+function gameToday() { return new Date().toLocaleDateString('en-CA', { timeZone: GAME_TZ }); }
+
+// Seeded RNG so every member gets the same five distilleries on the same day
+function gameRng(seedStr) {
+  let h = 2166136261;
+  for (const c of seedStr) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return () => {
+    h = (h + 0x6D2B79F5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function gamePickRounds(date) {
+  const rng = gameRng('dramdrop:' + date);
+  const pool = [...GAME_DISTILLERIES];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
   const picks = [];
   let scot = 0;
   for (const d of pool) {
@@ -3899,11 +3928,148 @@ function gameArc(a, b, steps = 64) {
   return pts;
 }
 
-function gameBest() { return parseInt(localStorage.getItem(GAME_BEST_KEY) || '0', 10); }
+// ── Daily progress (this device) ──
+function gameProgressKey(date) { return GAME_PROGRESS + currentMember() + '_' + date; }
+function gameLoadProgress(date) { return JSON.parse(localStorage.getItem(gameProgressKey(date)) || 'null'); }
+function gameSaveProgress() {
+  localStorage.setItem(gameProgressKey(gameState.date), JSON.stringify({
+    results: gameState.results.map(r => ({ km: r.km, points: r.points })),
+  }));
+}
 
-function gameRenderIntro() {
-  const best = gameBest();
-  document.getElementById('gameBestIntro').textContent = best ? `Personal best: ${best} / ${GAME_ROUNDS * 100}` : '';
+// ── Shared scoreboard (data/dramdrop.json) ──
+// Shape: { days: { 'YYYY-MM-DD': { Member: { total, rounds: [pts × 5] } } } }
+let gameBoard = { days: {} };
+
+async function gameLoadBoard() {
+  const pat = getPat();
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (pat) headers.Authorization = `Bearer ${pat}`;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GAME_DATA}?t=${Date.now()}`, { headers, cache: 'no-store' });
+    if (res.status === 404) return { data: { days: {} }, sha: null };
+    if (!res.ok) return null;
+    const d = await res.json();
+    return { data: JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, ''))))), sha: d.sha };
+  } catch { return null; }
+}
+
+// Re-reads the latest file before each write so two members finishing at once don't clobber each other
+async function gameSaveScore(date, entry) {
+  const pat = getPat();
+  if (!pat) return 'no-token';
+  const me = currentMember();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const latest = await gameLoadBoard();
+    if (!latest) return 'error';
+    const data = latest.data;
+    data.days = data.days || {};
+    data.days[date] = data.days[date] || {};
+    if (data.days[date][me]) { gameBoard = data; return 'ok'; }  // already recorded
+    data.days[date][me] = entry;
+    const json = JSON.stringify(data, null, 2);
+    const body = { message: `Dram Drop: ${me} ${date}`, content: btoa(unescape(encodeURIComponent(json))) };
+    if (latest.sha) body.sha = latest.sha;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GAME_DATA}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) { gameBoard = data; return 'ok'; }
+      if (res.status !== 409 && res.status !== 422) return 'error';
+    } catch { return 'error'; }
+  }
+  return 'error';
+}
+
+function gameUntilTomorrow() {
+  const parts = new Intl.DateTimeFormat('en-AU', { timeZone: GAME_TZ, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+    .formatToParts(new Date());
+  const h = +parts.find(p => p.type === 'hour').value, m = +parts.find(p => p.type === 'minute').value;
+  const left = 24 * 60 - (h * 60 + m);
+  return `${Math.floor(left / 60)}h ${left % 60}m`;
+}
+
+function gameBoardHtml(today) {
+  const me = currentMember();
+  const days = gameBoard.days || {};
+  const todays = Object.entries(days[today] || {}).sort((a, b) => b[1].total - a[1].total);
+  const todayRows = todays.map(([name, e], i) => `
+    <tr class="${name === me ? 'me' : ''}"><td>${i + 1}. ${esc(name)}</td><td>${e.rounds.join(' · ')}</td><td class="pts">${e.total}</td></tr>`).join('');
+
+  // All-time: games, average, best, daily wins (ties share the win)
+  const stats = {};
+  for (const [date, entries] of Object.entries(days)) {
+    const top = Math.max(...Object.values(entries).map(e => e.total));
+    for (const [name, e] of Object.entries(entries)) {
+      const st = stats[name] || (stats[name] = { games: 0, sum: 0, best: 0, wins: 0 });
+      st.games++; st.sum += e.total; st.best = Math.max(st.best, e.total);
+      if (e.total === top) st.wins++;
+    }
+  }
+  const allRows = Object.entries(stats)
+    .sort((a, b) => b[1].wins - a[1].wins || b[1].sum / b[1].games - a[1].sum / a[1].games)
+    .map(([name, st]) => `
+    <tr class="${name === me ? 'me' : ''}"><td>${esc(name)}</td><td>${st.wins}</td><td>${st.games}</td><td>${Math.round(st.sum / st.games)}</td><td class="pts">${st.best}</td></tr>`).join('');
+
+  return `<div class="game-board">
+    <h3>Today</h3>
+    ${todayRows ? `<table class="game-board-table"><tr><th>Player</th><th>Rounds</th><th>Total</th></tr>${todayRows}</table>`
+                : '<div class="game-board-empty">No scores yet today.</div>'}
+    <h3>All time</h3>
+    ${allRows ? `<table class="game-board-table"><tr><th>Player</th><th>Wins</th><th>Games</th><th>Avg</th><th>Best</th></tr>${allRows}</table>`
+              : '<div class="game-board-empty">No games played yet.</div>'}
+  </div>`;
+}
+
+let gamePlaying = false;
+
+async function gameRenderIntro(saveStatus) {
+  const el = document.getElementById('gameIntro');
+  if (!el.innerHTML) el.innerHTML = '<div class="game-done-lbl">Loading scoreboard…</div>';
+  const today = gameToday();
+  const picks = gamePickRounds(today);
+  const progress = gameLoadProgress(today);
+  const loaded = await gameLoadBoard();
+  if (loaded) gameBoard = loaded.data;
+  if (gamePlaying) return;  // user started playing while the board was loading
+
+  const mine = (gameBoard.days?.[today] || {})[currentMember()];
+  const done = mine || (progress && progress.results.length >= GAME_ROUNDS);
+  let top;
+  if (done) {
+    const results = progress ? progress.results : mine.rounds.map(points => ({ points, km: null }));
+    const total = results.reduce((t, r) => t + r.points, 0);
+    const rows = results.map((r, i) => `
+      <div class="game-round-row">
+        <span>${i + 1}. ${esc(picks[i].name)}<small>${esc(picks[i].place)}${r.km != null ? ` · ${Math.round(r.km).toLocaleString()} km off` : ''}</small></span>
+        <span>${r.points}</span>
+      </div>`).join('');
+    const note = mine ? '' :
+      saveStatus === 'no-token' || !getPat() ? 'Saved on this device only. Add a GitHub token in Settings to post it to the scoreboard.'
+      : 'Couldn\'t post to the scoreboard. <a href="#" id="gameRetryBtn" style="color:var(--gold-lt)">Try again</a>';
+    top = `
+      <div class="game-done-lbl">Today's Dram Drop</div>
+      <div class="game-total">${total}<span style="font-size:1.4rem;color:var(--text-dim)"> / ${GAME_ROUNDS * 100}</span></div>
+      <div class="game-best">Next game in ${gameUntilTomorrow()}</div>
+      ${note ? `<p class="game-note">${note}</p>` : ''}
+      <div class="game-rounds">${rows}</div>`;
+  } else {
+    const resume = progress && progress.results.length;
+    top = `
+      <h2>Dram Drop</h2>
+      <p>Five distilleries a day, the same for everyone. Drop a pin where you think each one is.<br>
+         Up to 100 points a round, depending on how close you get. One go per day.</p>
+      <button class="btn-primary" id="gameStartBtn">${resume ? `Resume (round ${resume + 1})` : "Play today's game"}</button>`;
+  }
+  el.innerHTML = top + gameBoardHtml(today);
+  document.getElementById('gameStartBtn')?.addEventListener('click', gameStart);
+  document.getElementById('gameRetryBtn')?.addEventListener('click', async e => {
+    e.preventDefault();
+    const rounds = progress.results.map(r => r.points);
+    gameRenderIntro(await gameSaveScore(today, { total: rounds.reduce((a, b) => a + b, 0), rounds }));
+  });
 }
 
 function gameRenderChips() {
@@ -3918,9 +4084,14 @@ function gameRenderChips() {
 
 function gameStart() {
   clearTimeout(gameTimer);
-  gameState = { picks: gamePickRounds(), round: 0, results: [], locked: false };
+  const date = gameToday();
+  const picks = gamePickRounds(date);
+  // Resume where this member left off today (refreshing doesn't give a fresh go)
+  const saved = (gameLoadProgress(date) || { results: [] }).results.map((r, i) => ({ d: picks[i], km: r.km, points: r.points }));
+  if (saved.length >= GAME_ROUNDS) { gameRenderIntro(); return; }
+  gameState = { date, picks, round: saved.length, results: saved, locked: false };
+  gamePlaying = true;
   document.getElementById('gameIntro').style.display = 'none';
-  document.getElementById('gameSummary').style.display = 'none';
   document.getElementById('gamePlay').style.display = '';
   gameInitMap();
   setTimeout(() => gameMap.resize(), 50);
@@ -3947,6 +4118,7 @@ function gameLockIn() {
   const points = gameScore(km);
   gameState.results.push({ d, km, points });
   gameState.locked = true;
+  gameSaveProgress();
 
   gameAddPin('answer', d);
   const arc = gameArc(gameGuess, d);
@@ -3973,33 +4145,21 @@ function gameNext() {
   else gameFinish();
 }
 
-function gameFinish() {
-  const total = gameState.results.reduce((t, r) => t + r.points, 0);
-  const prevBest = gameBest();
-  if (total > prevBest) localStorage.setItem(GAME_BEST_KEY, String(total));
-  const rows = gameState.results.map((r, i) => `
-    <div class="game-round-row">
-      <span>${i + 1}. ${esc(r.d.name)}<small>${esc(r.d.place)} · ${Math.round(r.km).toLocaleString()} km off</small></span>
-      <span>${r.points}</span>
-    </div>`).join('');
-  const el = document.getElementById('gameSummary');
-  el.innerHTML = `
-    <h2>Last orders</h2>
-    <div class="game-total">${total}<span style="font-size:1.4rem;color:var(--text-dim)"> / ${GAME_ROUNDS * 100}</span></div>
-    <div class="game-best">${total > prevBest ? 'New personal best' : `Personal best: ${prevBest}`}</div>
-    <div class="game-rounds">${rows}</div>
-    <button class="btn-primary" id="gameAgainBtn">Play again</button>`;
+async function gameFinish() {
+  gamePlaying = false;
+  const rounds = gameState.results.map(r => r.points);
+  const el = document.getElementById('gameIntro');
   document.getElementById('gamePlay').style.display = 'none';
+  el.innerHTML = '<div class="game-done-lbl">Posting your score…</div>';
   el.style.display = '';
-  document.getElementById('gameAgainBtn').addEventListener('click', gameStart);
+  const status = await gameSaveScore(gameState.date, { total: rounds.reduce((a, b) => a + b, 0), rounds });
+  gameRenderIntro(status);
 }
 
-document.getElementById('gameStartBtn').addEventListener('click', gameStart);
 document.getElementById('gameActionBtn').addEventListener('click', () => {
   if (!gameState) return;
   if (gameState.locked) gameNext();  // skip the wait
 });
-gameRenderIntro();
 
 // ─── Auto-focus image URL field on tab return after Find ──────────────
 document.addEventListener('visibilitychange', () => {
