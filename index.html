@@ -3830,8 +3830,8 @@ function gameInitMap() {
         // No-labels basemap so place names don't give the answer away
         base: {
           type: 'raster', tileSize: 256, maxzoom: 16,
-          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
-          attribution: 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+          attribution: 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, Maxar, Earthstar Geographics, and the GIS User Community',
         },
         line: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       },
