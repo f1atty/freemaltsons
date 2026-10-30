@@ -1840,6 +1840,52 @@ footer {
 }
 
 /* ── Ratings tab view ────────────────────────────────────────────── */
+
+/* ── Game View (Dram Drop) ──────────────────────────────────────────── */
+.game-view { display: none; max-width: 1160px; margin: 0 auto; padding: 20px 20px 100px; }
+.game-view.active { display: block; }
+.game-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 14px;
+}
+.game-prompt-lbl {
+  font-family: var(--font-sans); font-size: 0.62rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+.game-prompt {
+  font-family: var(--font-serif); font-size: 1.9rem; color: var(--cream); line-height: 1.1;
+}
+.game-meta { display: flex; gap: 18px; font-family: var(--font-sans); font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+.game-meta b { color: var(--gold-lt); font-weight: 600; }
+.game-map-wrap { position: relative; border: 1px solid var(--border-gold); border-radius: var(--radius-sm); overflow: hidden; }
+#gameMap { width: 100%; height: calc(100vh - 330px); min-height: 360px; background: var(--bg-deep); cursor: crosshair; }
+.game-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.game-result { font-family: var(--font-sans); font-size: 0.8rem; color: var(--cream-dim); }
+.game-result .pts { font-family: var(--font-serif); font-size: 1.6rem; color: var(--gold-lt); margin-right: 8px; }
+.game-intro, .game-summary {
+  max-width: 560px; margin: 30px auto; text-align: center;
+  background: var(--bg-surface); border: 1px solid var(--border-gold); border-radius: var(--radius);
+  padding: 32px 28px;
+}
+.game-intro h2, .game-summary h2 { font-family: var(--font-serif); font-weight: 400; font-size: 2.2rem; color: var(--cream); margin: 0 0 10px; }
+.game-intro p { font-family: var(--font-sans); font-size: 0.8rem; color: var(--text-dim); line-height: 1.7; margin: 0 0 22px; }
+.game-total { font-family: var(--font-serif); font-size: 3.4rem; color: var(--gold-lt); line-height: 1; margin: 6px 0 4px; }
+.game-best { font-family: var(--font-sans); font-size: 0.68rem; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 20px; }
+.game-rounds { text-align: left; margin: 0 0 22px; }
+.game-round-row {
+  display: flex; justify-content: space-between; gap: 12px; padding: 9px 0;
+  border-bottom: 1px solid var(--border); font-family: var(--font-sans); font-size: 0.76rem; color: var(--cream-dim);
+}
+.game-round-row span:last-child { color: var(--gold-lt); white-space: nowrap; }
+.game-round-row small { display: block; color: var(--text-faint); font-size: 0.66rem; margin-top: 2px; }
+.game-pin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--cream); }
+.game-pin.guess { background: var(--amber); }
+.game-pin.answer { background: var(--gold-lt); box-shadow: 0 0 12px rgba(221,185,106,0.8); }
+@media (max-width: 540px) {
+  .game-prompt { font-size: 1.5rem; }
+  #gameMap { height: calc(100vh - 360px); }
+}
+
 .ratings-view {
   display: none;
   max-width: 700px;
@@ -2097,6 +2143,7 @@ footer {
   <button class="tab" id="tabMap">Map</button>
   <button class="tab" id="tabLedger">Ledger</button>
   <button class="tab" id="tabRatings">Ratings</button>
+  <button class="tab" id="tabGame">Play</button>
 </nav>
 
 <!-- ── Controls ────────────────────────────────────────────────────── -->
@@ -2141,6 +2188,36 @@ footer {
 <div class="ratings-view" id="ratingsView">
   <div class="ratings-member-filter" id="ratingsMemberFilter"></div>
   <div id="ratingsViewContent"></div>
+</div>
+
+
+<!-- ── Game View (Dram Drop) ─────────────────────────────────────────── -->
+<div class="game-view" id="gameView">
+  <div class="game-intro" id="gameIntro">
+    <h2>Dram Drop</h2>
+    <p>Five distilleries. Drop a pin where you think each one is.<br>
+       Up to 100 points a round, depending on how close you get.</p>
+    <div class="game-best" id="gameBestIntro"></div>
+    <button class="btn-primary" id="gameStartBtn">Start game</button>
+  </div>
+  <div id="gamePlay" style="display:none">
+    <div class="game-top">
+      <div>
+        <div class="game-prompt-lbl">Where is this distillery?</div>
+        <div class="game-prompt" id="gamePrompt"></div>
+      </div>
+      <div class="game-meta">
+        <span>Round <b id="gameRoundNo">1</b> / 5</span>
+        <span>Score <b id="gameScore">0</b></span>
+      </div>
+    </div>
+    <div class="game-map-wrap"><div id="gameMap"></div></div>
+    <div class="game-actions">
+      <div class="game-result" id="gameResult">Tap the map to drop your pin.</div>
+      <button class="btn-primary" id="gameActionBtn" disabled>Lock in</button>
+    </div>
+  </div>
+  <div class="game-summary" id="gameSummary" style="display:none"></div>
 </div>
 
 <!-- ── FAB ─────────────────────────────────────────────────────────── -->
@@ -3577,7 +3654,7 @@ async function loadMapPins() {
 
 function switchTab(tab) {
   activeTab = tab;
-  ['sessions','ledger','map','ratings'].forEach(t => {
+  ['sessions','ledger','map','ratings','game'].forEach(t => {
     const id = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
     document.getElementById(id).classList.toggle('active', t === tab);
   });
@@ -3585,23 +3662,256 @@ function switchTab(tab) {
   const isMap      = tab === 'map';
   const isLedger   = tab === 'ledger';
   const isRatings  = tab === 'ratings';
+  const isGame     = tab === 'game';
   document.getElementById('sessionsGrid').style.display  = isSessions ? '' : 'none';
   document.getElementById('controlsBar').style.display   = isSessions ? '' : 'none';
   document.getElementById('addBtn').style.display        = isSessions ? '' : 'none';
   document.getElementById('mapView').style.display       = isMap      ? 'block' : 'none';
   document.getElementById('ledgerView').classList.toggle('visible', isLedger);
   document.getElementById('ratingsView').classList.toggle('active', isRatings);
+  document.getElementById('gameView').classList.toggle('active', isGame);
   mapViewActive = isMap;
   if (isMap) {
     setTimeout(() => { initMap(); mapInstance.invalidateSize(); loadMapPins(); }, 50);
   }
   if (isRatings) renderRatingsView();
+  if (isGame && gameMap) setTimeout(() => gameMap.invalidateSize(), 50);
 }
 
 document.getElementById('tabSessions').addEventListener('click', () => switchTab('sessions'));
 document.getElementById('tabLedger').addEventListener('click',   () => switchTab('ledger'));
 document.getElementById('tabMap').addEventListener('click',      () => switchTab('map'));
 document.getElementById('tabRatings').addEventListener('click',  () => switchTab('ratings'));
+document.getElementById('tabGame').addEventListener('click',     () => switchTab('game'));
+
+// ─── Dram Drop: distillery location game ─────────────────────────────
+// Coordinates are approximate (within a few km), which is plenty for scoring.
+const GAME_DISTILLERIES = [
+  // Scotland
+  { name: 'Glenfiddich',    place: 'Dufftown, Speyside, Scotland',        lat: 57.4555, lng: -3.1285, scot: true },
+  { name: 'The Macallan',   place: 'Craigellachie, Speyside, Scotland',   lat: 57.4848, lng: -3.2065, scot: true },
+  { name: 'The Glenlivet',  place: 'Ballindalloch, Speyside, Scotland',   lat: 57.3438, lng: -3.3379, scot: true },
+  { name: 'The Balvenie',   place: 'Dufftown, Speyside, Scotland',        lat: 57.4490, lng: -3.1300, scot: true },
+  { name: 'Lagavulin',      place: 'Islay, Scotland',                     lat: 55.6356, lng: -6.1261, scot: true },
+  { name: 'Laphroaig',      place: 'Islay, Scotland',                     lat: 55.6301, lng: -6.1517, scot: true },
+  { name: 'Ardbeg',         place: 'Islay, Scotland',                     lat: 55.6406, lng: -6.1084, scot: true },
+  { name: 'Bowmore',        place: 'Islay, Scotland',                     lat: 55.7568, lng: -6.2900, scot: true },
+  { name: 'Bruichladdich',  place: 'Islay, Scotland',                     lat: 55.7655, lng: -6.3614, scot: true },
+  { name: 'Kilchoman',      place: 'Islay, Scotland',                     lat: 55.7853, lng: -6.4359, scot: true },
+  { name: 'Talisker',       place: 'Carbost, Isle of Skye, Scotland',     lat: 57.3024, lng: -6.3567, scot: true },
+  { name: 'Highland Park',  place: 'Kirkwall, Orkney, Scotland',          lat: 58.9681, lng: -2.9545, scot: true },
+  { name: 'Oban',           place: 'Oban, West Highlands, Scotland',      lat: 56.4148, lng: -5.4716, scot: true },
+  { name: 'Glenmorangie',   place: 'Tain, Highlands, Scotland',           lat: 57.8264, lng: -4.0789, scot: true },
+  { name: 'The Dalmore',    place: 'Alness, Highlands, Scotland',         lat: 57.6893, lng: -4.2369, scot: true },
+  { name: 'Old Pulteney',   place: 'Wick, Caithness, Scotland',           lat: 58.4393, lng: -3.0951, scot: true },
+  { name: 'Wolfburn',       place: 'Thurso, Caithness, Scotland',         lat: 58.5957, lng: -3.5507, scot: true },
+  { name: 'Springbank',     place: 'Campbeltown, Scotland',               lat: 55.4253, lng: -5.6083, scot: true },
+  { name: 'Glenkinchie',    place: 'Pencaitland, Lowlands, Scotland',     lat: 55.8910, lng: -2.8906, scot: true },
+  { name: 'Auchentoshan',   place: 'Clydebank, Lowlands, Scotland',       lat: 55.9228, lng: -4.4372, scot: true },
+  { name: 'Edradour',       place: 'Pitlochry, Highlands, Scotland',      lat: 56.7022, lng: -3.6994, scot: true },
+  { name: 'Dalwhinnie',     place: 'Dalwhinnie, Highlands, Scotland',     lat: 56.9405, lng: -4.2427, scot: true },
+  { name: 'Tobermory',      place: 'Isle of Mull, Scotland',              lat: 56.6224, lng: -6.0659, scot: true },
+  { name: 'Arran',          place: 'Lochranza, Isle of Arran, Scotland',  lat: 55.7044, lng: -5.2896, scot: true },
+  { name: 'Bladnoch',       place: 'Wigtown, Lowlands, Scotland',         lat: 54.8579, lng: -4.4638, scot: true },
+  { name: 'Tomatin',        place: 'Tomatin, Highlands, Scotland',        lat: 57.3390, lng: -4.0093, scot: true },
+  // Ireland & rest of UK
+  { name: 'Midleton',       place: 'Midleton, County Cork, Ireland',      lat: 51.9163, lng: -8.1747 },
+  { name: 'Old Bushmills',  place: 'Bushmills, Northern Ireland',         lat: 55.2045, lng: -6.5185 },
+  { name: 'Teeling',        place: 'Dublin, Ireland',                     lat: 53.3380, lng: -6.2770 },
+  { name: 'Kilbeggan',      place: 'Kilbeggan, County Westmeath, Ireland',lat: 53.3689, lng: -7.5025 },
+  { name: 'Dingle',         place: 'Dingle, County Kerry, Ireland',       lat: 52.1384, lng: -10.2852 },
+  { name: 'Penderyn',       place: 'Penderyn, Wales',                     lat: 51.7450, lng: -3.4810 },
+  { name: 'The Lakes',      place: 'Bassenthwaite, Cumbria, England',     lat: 54.6766, lng: -3.2363 },
+  { name: 'Cotswolds',      place: 'Stourton, Warwickshire, England',     lat: 52.0300, lng: -1.6000 },
+  // Europe
+  { name: 'Mackmyra',       place: 'Gävle, Sweden',                       lat: 60.6400, lng: 17.0300 },
+  { name: 'Stauning',       place: 'Stauning, Denmark',                   lat: 55.9578, lng: 8.3242 },
+  { name: 'Kyrö',           place: 'Isokyrö, Finland',                    lat: 63.0000, lng: 22.3300 },
+  { name: 'Slyrs',          place: 'Schliersee, Bavaria, Germany',        lat: 47.7311, lng: 11.8578 },
+  { name: 'Zuidam',         place: 'Baarle-Nassau, Netherlands',          lat: 51.4400, lng: 4.9300 },
+  { name: 'Rozelieures',    place: 'Rozelieures, Lorraine, France',       lat: 48.4433, lng: 6.4378 },
+  { name: 'Puni',           place: 'Glurns, South Tyrol, Italy',          lat: 46.6700, lng: 10.5500 },
+  { name: 'Milk & Honey',   place: 'Tel Aviv, Israel',                    lat: 32.0640, lng: 34.7760 },
+  // North America
+  { name: 'Buffalo Trace',  place: 'Frankfort, Kentucky, USA',            lat: 38.2163, lng: -84.8708 },
+  { name: "Maker's Mark",   place: 'Loretto, Kentucky, USA',              lat: 37.6483, lng: -85.3483 },
+  { name: 'Jim Beam',       place: 'Clermont, Kentucky, USA',             lat: 37.9311, lng: -85.6522 },
+  { name: 'Woodford Reserve',place: 'Versailles, Kentucky, USA',          lat: 38.1136, lng: -84.8136 },
+  { name: 'Wild Turkey',    place: 'Lawrenceburg, Kentucky, USA',         lat: 38.0436, lng: -84.8494 },
+  { name: "Jack Daniel's",  place: 'Lynchburg, Tennessee, USA',           lat: 35.2836, lng: -86.3709 },
+  { name: 'George Dickel',  place: 'Normandy, Tennessee, USA',            lat: 35.4603, lng: -86.2422 },
+  { name: 'Balcones',       place: 'Waco, Texas, USA',                    lat: 31.5579, lng: -97.1330 },
+  { name: 'Westland',       place: 'Seattle, Washington, USA',            lat: 47.5786, lng: -122.3367 },
+  { name: "Stranahan's",    place: 'Denver, Colorado, USA',               lat: 39.7266, lng: -104.9877 },
+  { name: 'WhistlePig',     place: 'Shoreham, Vermont, USA',              lat: 43.8823, lng: -73.3043 },
+  { name: 'Crown Royal',    place: 'Gimli, Manitoba, Canada',             lat: 50.6333, lng: -96.9900 },
+  { name: 'Hiram Walker',   place: 'Windsor, Ontario, Canada',            lat: 42.3207, lng: -83.0313 },
+  { name: 'Shelter Point',  place: 'Vancouver Island, Canada',            lat: 49.9583, lng: -125.2133 },
+  // Asia
+  { name: 'Yamazaki',       place: 'Shimamoto, Osaka, Japan',             lat: 34.8925, lng: 135.6744 },
+  { name: 'Hakushu',        place: 'Hokuto, Yamanashi, Japan',            lat: 35.8270, lng: 138.3020 },
+  { name: 'Yoichi',         place: 'Yoichi, Hokkaido, Japan',             lat: 43.1925, lng: 140.7836 },
+  { name: 'Miyagikyo',      place: 'Sendai, Miyagi, Japan',               lat: 38.3006, lng: 140.6347 },
+  { name: 'Chichibu',       place: 'Chichibu, Saitama, Japan',            lat: 35.9850, lng: 139.0817 },
+  { name: 'Mars Shinshu',   place: 'Miyada, Nagano, Japan',               lat: 35.7461, lng: 137.9378 },
+  { name: 'Kavalan',        place: 'Yilan, Taiwan',                       lat: 24.6956, lng: 121.7733 },
+  { name: 'Amrut',          place: 'Bengaluru, India',                    lat: 13.0090, lng: 77.5940 },
+  { name: 'Paul John',      place: 'Cuncolim, Goa, India',                lat: 15.1800, lng: 73.9900 },
+  // Southern hemisphere
+  { name: 'Lark',           place: 'Hobart, Tasmania, Australia',         lat: -42.8840, lng: 147.3290 },
+  { name: 'Sullivans Cove', place: 'Cambridge, Tasmania, Australia',      lat: -42.8336, lng: 147.4427 },
+  { name: 'Hellyers Road',  place: 'Burnie, Tasmania, Australia',         lat: -41.0890, lng: 145.9090 },
+  { name: 'Starward',       place: 'Port Melbourne, Victoria, Australia', lat: -37.8330, lng: 144.9290 },
+  { name: 'Archie Rose',    place: 'Rosebery, Sydney, Australia',         lat: -33.9183, lng: 151.2033 },
+  { name: 'Limeburners',    place: 'Albany, Western Australia',           lat: -35.0200, lng: 117.8800 },
+  { name: 'Cardrona',       place: 'Wānaka, Central Otago, New Zealand',  lat: -44.7600, lng: 169.0600 },
+  { name: 'James Sedgwick', place: 'Wellington, Western Cape, South Africa', lat: -33.6410, lng: 19.0160 },
+];
+
+const GAME_ROUNDS     = 5;
+const GAME_MAX_SCOT   = 2;   // cap Scottish picks per game so it's not all Speyside
+const GAME_BEST_KEY   = 'fm_dramdrop_best';
+let gameMap = null, gameLayer = null, gameGuess = null;
+let gameState = null;  // { picks, round, results, locked }
+
+function gameDistanceKm(a, b) {
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// 100 within 10 km, then decays: ~94 at 100 km, ~72 at 500 km, ~51 at 1,000 km, ~14 at 3,000 km
+function gameScore(km) {
+  if (km <= 10) return 100;
+  return Math.max(0, Math.round(100 * Math.exp(-(km - 10) / 1500)));
+}
+
+function gamePickRounds() {
+  const pool = [...GAME_DISTILLERIES].sort(() => Math.random() - 0.5);
+  const picks = [];
+  let scot = 0;
+  for (const d of pool) {
+    if (d.scot && scot >= GAME_MAX_SCOT) continue;
+    if (d.scot) scot++;
+    picks.push(d);
+    if (picks.length === GAME_ROUNDS) break;
+  }
+  return picks;
+}
+
+function gameInitMap() {
+  if (gameMap) return;
+  gameMap = L.map('gameMap', {
+    maxBounds: [[-90, -180], [90, 180]],
+    maxBoundsViscosity: 1.0,
+    minZoom: 2,
+    worldCopyJump: false,
+  }).setView([30, 10], 2);
+  // No-labels basemap so place names don't give the answer away
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 18, noWrap: true,
+  }).addTo(gameMap);
+  gameLayer = L.layerGroup().addTo(gameMap);
+  gameMap.on('click', e => {
+    if (!gameState || gameState.locked) return;
+    gameGuess = { lat: e.latlng.lat, lng: e.latlng.lng };
+    gameLayer.clearLayers();
+    L.marker([gameGuess.lat, gameGuess.lng], { icon: gamePinIcon('guess') }).addTo(gameLayer);
+    document.getElementById('gameActionBtn').disabled = false;
+  });
+}
+
+function gamePinIcon(kind) {
+  return L.divIcon({ html: `<div class="game-pin ${kind}"></div>`, className: '', iconSize: [14, 14], iconAnchor: [7, 7] });
+}
+
+function gameBest() { return parseInt(localStorage.getItem(GAME_BEST_KEY) || '0', 10); }
+
+function gameRenderIntro() {
+  const best = gameBest();
+  document.getElementById('gameBestIntro').textContent = best ? `Personal best: ${best} / ${GAME_ROUNDS * 100}` : '';
+}
+
+function gameStart() {
+  gameState = { picks: gamePickRounds(), round: 0, results: [], locked: false };
+  document.getElementById('gameIntro').style.display = 'none';
+  document.getElementById('gameSummary').style.display = 'none';
+  document.getElementById('gamePlay').style.display = '';
+  gameInitMap();
+  setTimeout(() => gameMap.invalidateSize(), 50);
+  gameShowRound();
+}
+
+function gameShowRound() {
+  const d = gameState.picks[gameState.round];
+  gameState.locked = false;
+  gameGuess = null;
+  gameLayer.clearLayers();
+  gameMap.setView([30, 10], 2);
+  document.getElementById('gamePrompt').textContent = d.name;
+  document.getElementById('gameRoundNo').textContent = gameState.round + 1;
+  document.getElementById('gameScore').textContent = gameState.results.reduce((t, r) => t + r.points, 0);
+  document.getElementById('gameResult').textContent = 'Tap the map to drop your pin.';
+  const btn = document.getElementById('gameActionBtn');
+  btn.textContent = 'Lock in';
+  btn.disabled = true;
+}
+
+function gameLockIn() {
+  const d = gameState.picks[gameState.round];
+  const km = gameDistanceKm(gameGuess, d);
+  const points = gameScore(km);
+  gameState.results.push({ d, km, points });
+  gameState.locked = true;
+
+  L.marker([d.lat, d.lng], { icon: gamePinIcon('answer') }).addTo(gameLayer);
+  L.polyline([[gameGuess.lat, gameGuess.lng], [d.lat, d.lng]], { color: '#ddb96a', weight: 2, dashArray: '6 6' }).addTo(gameLayer);
+  gameMap.fitBounds(L.latLngBounds([[gameGuess.lat, gameGuess.lng], [d.lat, d.lng]]), { padding: [60, 60], maxZoom: 8 });
+
+  document.getElementById('gameScore').textContent = gameState.results.reduce((t, r) => t + r.points, 0);
+  document.getElementById('gameResult').innerHTML =
+    `<span class="pts">+${points}</span>${Math.round(km).toLocaleString()} km away · ${esc(d.place)}`;
+  const btn = document.getElementById('gameActionBtn');
+  btn.textContent = gameState.round + 1 < GAME_ROUNDS ? 'Next round' : 'See results';
+  btn.disabled = false;
+}
+
+function gameNext() {
+  gameState.round++;
+  if (gameState.round < GAME_ROUNDS) gameShowRound();
+  else gameFinish();
+}
+
+function gameFinish() {
+  const total = gameState.results.reduce((t, r) => t + r.points, 0);
+  const prevBest = gameBest();
+  if (total > prevBest) localStorage.setItem(GAME_BEST_KEY, String(total));
+  const rows = gameState.results.map((r, i) => `
+    <div class="game-round-row">
+      <span>${i + 1}. ${esc(r.d.name)}<small>${esc(r.d.place)} · ${Math.round(r.km).toLocaleString()} km off</small></span>
+      <span>${r.points}</span>
+    </div>`).join('');
+  const el = document.getElementById('gameSummary');
+  el.innerHTML = `
+    <h2>Last orders</h2>
+    <div class="game-total">${total}<span style="font-size:1.4rem;color:var(--text-dim)"> / ${GAME_ROUNDS * 100}</span></div>
+    <div class="game-best">${total > prevBest ? 'New personal best' : `Personal best: ${prevBest}`}</div>
+    <div class="game-rounds">${rows}</div>
+    <button class="btn-primary" id="gameAgainBtn">Play again</button>`;
+  document.getElementById('gamePlay').style.display = 'none';
+  el.style.display = '';
+  document.getElementById('gameAgainBtn').addEventListener('click', gameStart);
+}
+
+document.getElementById('gameStartBtn').addEventListener('click', gameStart);
+document.getElementById('gameActionBtn').addEventListener('click', () => {
+  if (!gameState) return;
+  if (!gameState.locked) { if (gameGuess) gameLockIn(); }
+  else gameNext();
+});
+gameRenderIntro();
 
 // ─── Auto-focus image URL field on tab return after Find ──────────────
 document.addEventListener('visibilitychange', () => {
