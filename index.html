@@ -1857,6 +1857,13 @@ footer {
 }
 .game-meta { display: flex; gap: 18px; font-family: var(--font-sans); font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
 .game-meta b { color: var(--gold-lt); font-weight: 600; }
+.game-chips { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+.game-chip {
+  min-width: 38px; padding: 4px 6px; text-align: center; border-radius: var(--radius-xs);
+  border: 1px solid var(--border-gold); font-family: var(--font-sans); font-size: 0.72rem; color: var(--text-faint);
+}
+.game-chip.done { color: var(--gold-lt); border-color: var(--gold-dim); background: var(--gold-faint); }
+.game-chip.current { color: var(--cream); border-color: var(--gold); }
 .game-map-wrap { position: relative; border: 1px solid var(--border-gold); border-radius: var(--radius-sm); overflow: hidden; }
 #gameMap { width: 100%; height: calc(100vh - 330px); min-height: 360px; background: var(--bg-deep); cursor: crosshair; }
 .game-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
@@ -2206,15 +2213,18 @@ footer {
         <div class="game-prompt-lbl">Where is this distillery?</div>
         <div class="game-prompt" id="gamePrompt"></div>
       </div>
-      <div class="game-meta">
-        <span>Round <b id="gameRoundNo">1</b> / 5</span>
-        <span>Score <b id="gameScore">0</b></span>
+      <div>
+        <div class="game-meta">
+          <span>Round <b id="gameRoundNo">1</b> / 5</span>
+          <span>Score <b id="gameScore">0</b></span>
+        </div>
+        <div class="game-chips" id="gameChips"></div>
       </div>
     </div>
     <div class="game-map-wrap"><div id="gameMap"></div></div>
     <div class="game-actions">
       <div class="game-result" id="gameResult">Tap the map to drop your pin.</div>
-      <button class="btn-primary" id="gameActionBtn" disabled>Lock in</button>
+      <button class="btn-primary" id="gameActionBtn" style="visibility:hidden">Next</button>
     </div>
   </div>
   <div class="game-summary" id="gameSummary" style="display:none"></div>
@@ -3771,7 +3781,8 @@ const GAME_DISTILLERIES = [
 const GAME_ROUNDS     = 5;
 const GAME_MAX_SCOT   = 2;   // cap Scottish picks per game so it's not all Speyside
 const GAME_BEST_KEY   = 'fm_dramdrop_best';
-let gameMap = null, gameLayer = null, gameGuess = null;
+const GAME_REVEAL_MS  = 3500;  // how long the answer shows before auto-advancing
+let gameMap = null, gameLayer = null, gameGuess = null, gameTimer = null;
 let gameState = null;  // { picks, round, results, locked }
 
 function gameDistanceKm(a, b) {
@@ -3820,7 +3831,7 @@ function gameInitMap() {
     gameGuess = { lat: e.latlng.lat, lng: e.latlng.lng };
     gameLayer.clearLayers();
     L.marker([gameGuess.lat, gameGuess.lng], { icon: gamePinIcon('guess') }).addTo(gameLayer);
-    document.getElementById('gameActionBtn').disabled = false;
+    gameLockIn();
   });
 }
 
@@ -3835,7 +3846,18 @@ function gameRenderIntro() {
   document.getElementById('gameBestIntro').textContent = best ? `Personal best: ${best} / ${GAME_ROUNDS * 100}` : '';
 }
 
+function gameRenderChips() {
+  const chips = [];
+  for (let i = 0; i < GAME_ROUNDS; i++) {
+    const r = gameState.results[i];
+    const cls = r ? 'done' : (i === gameState.round ? 'current' : '');
+    chips.push(`<span class="game-chip ${cls}">${r ? r.points : '–'}</span>`);
+  }
+  document.getElementById('gameChips').innerHTML = chips.join('');
+}
+
 function gameStart() {
+  clearTimeout(gameTimer);
   gameState = { picks: gamePickRounds(), round: 0, results: [], locked: false };
   document.getElementById('gameIntro').style.display = 'none';
   document.getElementById('gameSummary').style.display = 'none';
@@ -3855,9 +3877,8 @@ function gameShowRound() {
   document.getElementById('gameRoundNo').textContent = gameState.round + 1;
   document.getElementById('gameScore').textContent = gameState.results.reduce((t, r) => t + r.points, 0);
   document.getElementById('gameResult').textContent = 'Tap the map to drop your pin.';
-  const btn = document.getElementById('gameActionBtn');
-  btn.textContent = 'Lock in';
-  btn.disabled = true;
+  document.getElementById('gameActionBtn').style.visibility = 'hidden';
+  gameRenderChips();
 }
 
 function gameLockIn() {
@@ -3874,12 +3895,15 @@ function gameLockIn() {
   document.getElementById('gameScore').textContent = gameState.results.reduce((t, r) => t + r.points, 0);
   document.getElementById('gameResult').innerHTML =
     `<span class="pts">+${points}</span>${Math.round(km).toLocaleString()} km away · ${esc(d.place)}`;
+  gameRenderChips();
   const btn = document.getElementById('gameActionBtn');
   btn.textContent = gameState.round + 1 < GAME_ROUNDS ? 'Next round' : 'See results';
-  btn.disabled = false;
+  btn.style.visibility = 'visible';
+  gameTimer = setTimeout(gameNext, GAME_REVEAL_MS);
 }
 
 function gameNext() {
+  clearTimeout(gameTimer);
   gameState.round++;
   if (gameState.round < GAME_ROUNDS) gameShowRound();
   else gameFinish();
@@ -3909,8 +3933,7 @@ function gameFinish() {
 document.getElementById('gameStartBtn').addEventListener('click', gameStart);
 document.getElementById('gameActionBtn').addEventListener('click', () => {
   if (!gameState) return;
-  if (!gameState.locked) { if (gameGuess) gameLockIn(); }
-  else gameNext();
+  if (gameState.locked) gameNext();  // skip the wait
 });
 gameRenderIntro();
 
